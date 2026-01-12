@@ -1,0 +1,9 @@
+type Mutation {
+  create_invoice(
+    item_id: uuid!
+  ): CreateInvoiceOutput
+}
+
+type CreateInvoiceOutput {
+  invoice_link: String!
+}

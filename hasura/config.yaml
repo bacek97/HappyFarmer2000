@@ -1,0 +1,7 @@
+version: 3
+endpoint: https://happy-farmer-2000.hasura.app
+metadata_directory: metadata
+admin_secret: 2K5y3UoqKy5ctFcro03E5fVpoDR5N6mFv6GR8c5IHxP6CxcEMmUjqO5MOtCHD0ce
+actions:
+  kind: synchronous
+  handler_webhook_baseurl: http://localhost:3000

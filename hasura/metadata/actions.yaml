@@ -1,0 +1,17 @@
+actions:
+  - name: create_invoice
+    definition:
+      kind: synchronous
+      handler: 'https://happyfarmer2000.bacek97.deno.net/v1/actions/create_invoice'
+      forward_client_headers: true
+    permissions:
+      - role: user
+custom_types:
+  enums: []
+  input_objects: []
+  objects:
+    - name: CreateInvoiceOutput
+      fields:
+        - name: invoice_link
+          type: String!
+  scalars: []

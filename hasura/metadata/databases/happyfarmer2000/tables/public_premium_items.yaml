@@ -1,0 +1,29 @@
+table:
+  name: premium_items
+  schema: public
+array_relationships:
+  - name: payments
+    using:
+      foreign_key_constraint_on:
+        column: item_id
+        table:
+          name: payments
+          schema: public
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - name
+        - price_stars
+        - created_at
+      filter: {}
+  - role: service_role
+    permission:
+      columns:
+        - id
+        - name
+        - price_stars
+        - created_at
+        - updated_at
+      filter: {}
