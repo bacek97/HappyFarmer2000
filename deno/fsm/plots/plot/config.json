@@ -1,0 +1,107 @@
+{
+    "code": "plot",
+    "name": {
+        "en": "Farm",
+        "ru": "Ферма"
+    },
+    "icon": "🌾",
+    "description": {
+        "en": "Your farm plots",
+        "ru": "Ваши грядки"
+    },
+    "base_plots": 6,
+    "total_plots": 32,
+    "max_plots": 32,
+    "plot_price": 100,
+    "price_multiplier": 1.5,
+    "ui": {
+        "buttons": {
+            "plant": {
+                "en": "Plant",
+                "ru": "Посадить"
+            },
+            "harvest": {
+                "en": "Harvest",
+                "ru": "Собрать"
+            },
+            "plow": {
+                "en": "Plow",
+                "ru": "Вспахать"
+            },
+            "buy_plot": {
+                "en": "Buy Plot",
+                "ru": "Купить грядку"
+            },
+            "water": {
+                "en": "Water",
+                "ru": "Полить"
+            },
+            "remove_pest": {
+                "en": "Remove Pest",
+                "ru": "Убрать вредителя"
+            }
+        },
+        "labels": {
+            "select_crop": {
+                "en": "Select crop",
+                "ru": "Выберите культуру"
+            },
+            "empty_plot": {
+                "en": "Empty plot",
+                "ru": "Пустая грядка"
+            },
+            "growing": {
+                "en": "Growing",
+                "ru": "Растёт"
+            },
+            "ready": {
+                "en": "Ready to harvest",
+                "ru": "Готово к сбору"
+            },
+            "withered": {
+                "en": "Withered",
+                "ru": "Увяло"
+            }
+        },
+        "messages": {
+            "planted": {
+                "en": "Planted!",
+                "ru": "Посажено!"
+            },
+            "harvested": {
+                "en": "Harvested!",
+                "ru": "Собрано!"
+            }
+        }
+    },
+    "stages": {
+        "empty": {
+            "messages": {
+                "en": "Empty",
+                "ru": "Пустая"
+            },
+            "image": "fsm/plots/plot/plot_ready.png"
+        },
+        "planted": {
+            "messages": {
+                "en": "Planted",
+                "ru": "Засажена"
+            },
+            "image": "fsm/plots/plot/plot_ready.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готово"
+            },
+            "image": "fsm/plots/plot/plot_ready.png"
+        },
+        "blocked": {
+            "messages": {
+                "en": "Blocked",
+                "ru": "Заблокировано"
+            },
+            "image": "fsm/plots/plot/plot_blocked.png"
+        }
+    }
+}

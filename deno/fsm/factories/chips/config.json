@@ -1,0 +1,112 @@
+{
+    "code": "chips",
+    "name": {
+        "en": "Chips Factory",
+        "ru": "Фабрика чипсов"
+    },
+    "description": {
+        "en": "Make delicious chips",
+        "ru": "Делайте вкусные чипсы"
+    },
+    "buy_silver": 2000,
+    "build_time": 7200,
+    "slots": 2,
+    "exp": 80,
+    "level": 10,
+    "position": {
+        "x": -170,
+        "y": -70
+    },
+    "size": {
+        "width": 200,
+        "height": 120
+    },
+    "stages": {
+        "building": {
+            "messages": {
+                "en": "Building",
+                "ru": "Строится"
+            },
+            "image": "fsm/factories/chips/chips.png"
+        },
+        "idle": {
+            "messages": {
+                "en": "Idle",
+                "ru": "Простой"
+            },
+            "image": "fsm/factories/chips/chips.png"
+        },
+        "processing": {
+            "messages": {
+                "en": "Processing",
+                "ru": "Работает"
+            },
+            "image": "fsm/factories/chips/chips.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готово"
+            },
+            "image": "fsm/factories/chips/chips.png"
+        }
+    },
+    "recipes": [
+        {
+            "code": "potato_chips",
+            "name": {
+                "en": "Potato Chips",
+                "ru": "Картофельные чипсы"
+            },
+            "inputs": [
+                {
+                    "item": "patates",
+                    "count": 5
+                }
+            ],
+            "products": [
+                {
+                    "code": "potato_chips",
+                    "name": {
+                        "en": "Potato Chips",
+                        "ru": "Картофельные чипсы"
+                    },
+                    "count": 3,
+                    "sell_silver": 50
+                }
+            ],
+            "time": 600,
+            "exp": 20
+        },
+        {
+            "code": "luxury_chips",
+            "name": {
+                "en": "Luxury Chips",
+                "ru": "Чипсы Люкс"
+            },
+            "inputs": [
+                {
+                    "item": "patates",
+                    "count": 5
+                },
+                {
+                    "item": "red_caviar",
+                    "count": 2
+                }
+            ],
+            "products": [
+                {
+                    "code": "luxury_chips",
+                    "name": {
+                        "en": "Luxury Chips",
+                        "ru": "Чипсы Люкс"
+                    },
+                    "count": 3,
+                    "sell_silver": 150
+                }
+            ],
+            "time": 900,
+            "exp": 50
+        }
+    ]
+}

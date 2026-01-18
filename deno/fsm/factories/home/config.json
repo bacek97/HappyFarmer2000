@@ -1,0 +1,25 @@
+{
+    "code": "home",
+    "name": {
+        "en": "Home",
+        "ru": "Дом"
+    },
+    "description": {
+        "en": "Your farm house",
+        "ru": "Ваш фермерский дом"
+    },
+    "decoration": true,
+    "position": {
+        "x": -40,
+        "y": -180
+    },
+    "size": {
+        "width": 150,
+        "height": 180
+    },
+    "stages": {
+        "idle": {
+            "image": "fsm/factories/home/home.png"
+        }
+    }
+}

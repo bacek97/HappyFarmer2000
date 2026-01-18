@@ -1,0 +1,39 @@
+{
+    "code": "currency",
+    "name": {
+        "en": "Currency",
+        "ru": "Валюта"
+    },
+    "silver": {
+        "name": {
+            "en": "Silver",
+            "ru": "Серебро"
+        },
+        "image": "/images/ui/currency/silver.png",
+        "icon": "/images/ui/currency/silver_icon.png"
+    },
+    "gold": {
+        "name": {
+            "en": "Gold",
+            "ru": "Золото"
+        },
+        "image": "/images/ui/currency/gold.png",
+        "icon": "/images/ui/currency/gold_icon.png"
+    },
+    "exp": {
+        "name": {
+            "en": "Experience",
+            "ru": "Опыт"
+        },
+        "image": "/images/ui/currency/exp.png",
+        "icon": "/images/ui/currency/exp_icon.png"
+    },
+    "delight": {
+        "name": {
+            "en": "Delight",
+            "ru": "Восторг"
+        },
+        "image": "/images/ui/currency/delight.png",
+        "icon": "/images/ui/currency/delight_icon.png"
+    }
+}

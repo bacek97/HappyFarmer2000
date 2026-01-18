@@ -1,0 +1,25 @@
+{
+    "code": "dog_home",
+    "name": {
+        "en": "Dog House",
+        "ru": "Будка"
+    },
+    "description": {
+        "en": "Home for your dog",
+        "ru": "Дом для вашей собаки"
+    },
+    "decoration": true,
+    "position": {
+        "x": -170,
+        "y": -230
+    },
+    "size": {
+        "width": 80,
+        "height": 70
+    },
+    "stages": {
+        "idle": {
+            "image": "fsm/factories/dog_home/dog_home.png"
+        }
+    }
+}

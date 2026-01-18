@@ -1,0 +1,13 @@
+{
+    "code": "market",
+    "name": {
+        "en": "Market",
+        "ru": "Рынок"
+    },
+    "description": {
+        "en": "Sell your products",
+        "ru": "Продавайте продукты"
+    },
+    "tax_percent": 5,
+    "min_sell_qty": 1
+}

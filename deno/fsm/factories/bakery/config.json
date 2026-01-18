@@ -1,0 +1,116 @@
+{
+    "code": "bakery",
+    "name": {
+        "en": "Bakery",
+        "ru": "Пекарня"
+    },
+    "description": {
+        "en": "Bake bread and pastries",
+        "ru": "Выпекайте хлеб и выпечку"
+    },
+    "buy_silver": 1000,
+    "build_time": 3600,
+    "slots": 2,
+    "exp": 50,
+    "level": 5,
+    "position": {
+        "x": 80,
+        "y": 8
+    },
+    "size": {
+        "width": 90,
+        "height": 110
+    },
+    "stages": {
+        "building": {
+            "messages": {
+                "en": "Building",
+                "ru": "Строится"
+            },
+            "image": "/images/factories/bakery/building.png"
+        },
+        "idle": {
+            "messages": {
+                "en": "Idle",
+                "ru": "Простой"
+            },
+            "image": "/images/factories/bakery/idle.png"
+        },
+        "processing": {
+            "messages": {
+                "en": "Processing",
+                "ru": "Работает"
+            },
+            "image": "/images/factories/bakery/processing.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готово"
+            },
+            "image": "/images/factories/bakery/ready.png"
+        }
+    },
+    "recipes": [
+        {
+            "code": "bread",
+            "name": {
+                "en": "Bread",
+                "ru": "Хлеб"
+            },
+            "inputs": [
+                {
+                    "item": "wheat",
+                    "count": 2
+                }
+            ],
+            "products": [
+                {
+                    "code": "bread",
+                    "name": {
+                        "en": "Bread",
+                        "ru": "Хлеб"
+                    },
+                    "count": 1,
+                    "sell_silver": 30
+                }
+            ],
+            "time": 300,
+            "exp": 10
+        },
+        {
+            "code": "cake",
+            "name": {
+                "en": "Cake",
+                "ru": "Торт"
+            },
+            "inputs": [
+                {
+                    "item": "wheat",
+                    "count": 3
+                },
+                {
+                    "item": "egg",
+                    "count": 2
+                },
+                {
+                    "item": "milk",
+                    "count": 1
+                }
+            ],
+            "products": [
+                {
+                    "code": "cake",
+                    "name": {
+                        "en": "Cake",
+                        "ru": "Торт"
+                    },
+                    "count": 1,
+                    "sell_silver": 100
+                }
+            ],
+            "time": 900,
+            "exp": 30
+        }
+    ]
+}

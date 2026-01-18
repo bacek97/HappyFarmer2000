@@ -1,0 +1,81 @@
+{
+    "code": "patates",
+    "name": {
+        "en": "Potato",
+        "ru": "Картофель"
+    },
+    "description": {
+        "en": "Versatile potato",
+        "ru": "Универсальный картофель"
+    },
+    "buy_silver": 8,
+    "exp": 6,
+    "level": 2,
+    "stage_times": [
+        40,
+        80,
+        100,
+        50
+    ],
+    "wither_time": 2200,
+    "pest_chance": 0.1,
+    "water_chance": 0.25,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "/images/crops/patates/seed.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "/images/crops/patates/sprout.png"
+        },
+        "growing": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "/images/crops/patates/growing.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "/images/crops/patates/ripe.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "/images/crops/patates/withered.png"
+        }
+    },
+    "social": {
+        "steal_percent": 15,
+        "steals_per_neighbor": 4,
+        "waters_per_neighbor": 5,
+        "water_exp": 4,
+        "remove_pest_exp": 2
+    },
+    "products": [
+        {
+            "code": "patates",
+            "name": {
+                "en": "Potato",
+                "ru": "Картофель"
+            },
+            "yield": [
+                4,
+                8
+            ],
+            "sell_silver": 20
+        }
+    ]
+}

@@ -1,0 +1,70 @@
+{
+    "code": "cow",
+    "name": {
+        "en": "Cow",
+        "ru": "Корова"
+    },
+    "description": {
+        "en": "Produces milk and beef",
+        "ru": "Даёт молоко и говядину"
+    },
+    "buy_silver": 500,
+    "feed_interval": 7200,
+    "sick_time": 10800,
+    "cure_price": 50,
+    "exp": 15,
+    "level": 5,
+    "stages": {
+        "hungry": {
+            "messages": {
+                "en": "Hungry",
+                "ru": "Голодный"
+            },
+            "image": "/images/animals/cow/hungry.png"
+        },
+        "fed": {
+            "messages": {
+                "en": "Fed",
+                "ru": "Сытый"
+            },
+            "image": "/images/animals/cow/fed.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готов"
+            },
+            "image": "/images/animals/cow/ready.png"
+        },
+        "sick": {
+            "messages": {
+                "en": "Sick",
+                "ru": "Болен"
+            },
+            "image": "/images/animals/cow/sick.png"
+        }
+    },
+    "products": [
+        {
+            "code": "milk",
+            "name": {
+                "en": "Milk",
+                "ru": "Молоко"
+            },
+            "type": "renewable",
+            "produce_time": 3600,
+            "count": 2,
+            "sell_silver": 25
+        },
+        {
+            "code": "beef",
+            "name": {
+                "en": "Beef",
+                "ru": "Говядина"
+            },
+            "type": "terminal",
+            "count": 5,
+            "sell_silver": 100
+        }
+    ]
+}

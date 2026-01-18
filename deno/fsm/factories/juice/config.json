@@ -1,0 +1,157 @@
+{
+    "code": "juice",
+    "name": {
+        "en": "Juice Factory",
+        "ru": "Соковыжималка"
+    },
+    "description": {
+        "en": "Make fresh juices",
+        "ru": "Делайте свежие соки"
+    },
+    "icon": "🧃",
+    "buy_silver": 1800,
+    "build_time": 5400,
+    "slots": 3,
+    "exp": 60,
+    "level": 7,
+    "position": {
+        "x": -400,
+        "y": -150
+    },
+    "size": {
+        "width": 150,
+        "height": 100
+    },
+    "ui": {
+        "buttons": {
+            "start": {
+                "en": "Start",
+                "ru": "Запустить"
+            },
+            "collect": {
+                "en": "Collect",
+                "ru": "Забрать"
+            }
+        },
+        "labels": {
+            "processing": {
+                "en": "Processing",
+                "ru": "Работает"
+            },
+            "ready": {
+                "en": "Ready!",
+                "ru": "Готово!"
+            }
+        }
+    },
+    "stages": {
+        "building": {
+            "messages": {
+                "en": "Building",
+                "ru": "Строится"
+            },
+            "image": "fsm/factories/juice/juice.png"
+        },
+        "idle": {
+            "messages": {
+                "en": "Idle",
+                "ru": "Простой"
+            },
+            "image": "fsm/factories/juice/juice.png"
+        },
+        "processing": {
+            "messages": {
+                "en": "Processing",
+                "ru": "Работает"
+            },
+            "image": "fsm/factories/juice/juice.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готово"
+            },
+            "image": "fsm/factories/juice/juice.png"
+        }
+    },
+    "recipes": [
+        {
+            "code": "apple_juice",
+            "name": {
+                "en": "Apple Juice",
+                "ru": "Яблочный сок"
+            },
+            "inputs": [
+                {
+                    "item": "apple",
+                    "count": 3
+                }
+            ],
+            "products": [
+                {
+                    "code": "apple_juice",
+                    "name": {
+                        "en": "Apple Juice",
+                        "ru": "Яблочный сок"
+                    },
+                    "count": 1,
+                    "sell_silver": 40
+                }
+            ],
+            "time": 300,
+            "exp": 12
+        },
+        {
+            "code": "carrot_juice",
+            "name": {
+                "en": "Carrot Juice",
+                "ru": "Морковный сок"
+            },
+            "inputs": [
+                {
+                    "item": "carrot",
+                    "count": 4
+                }
+            ],
+            "products": [
+                {
+                    "code": "carrot_juice",
+                    "name": {
+                        "en": "Carrot Juice",
+                        "ru": "Морковный сок"
+                    },
+                    "count": 1,
+                    "sell_silver": 35
+                }
+            ],
+            "time": 240,
+            "exp": 10
+        },
+        {
+            "code": "tomato_juice",
+            "name": {
+                "en": "Tomato Juice",
+                "ru": "Томатный сок"
+            },
+            "inputs": [
+                {
+                    "item": "tomato",
+                    "count": 4
+                }
+            ],
+            "products": [
+                {
+                    "code": "tomato_juice",
+                    "name": {
+                        "en": "Tomato Juice",
+                        "ru": "Томатный сок"
+                    },
+                    "count": 1,
+                    "sell_silver": 45
+                }
+            ],
+            "time": 300,
+            "exp": 14
+        }
+    ]
+}

@@ -1,0 +1,74 @@
+{
+    "code": "bank",
+    "name": {
+        "en": "Bank",
+        "ru": "Банк"
+    },
+    "icon": "🏦",
+    "description": {
+        "en": "Loans and deposits",
+        "ru": "Кредиты и депозиты"
+    },
+    "loan": {
+        "name": {
+            "en": "Loan",
+            "ru": "Кредит"
+        },
+        "rate_per_day": 0.05,
+        "max_amount": 10000
+    },
+    "deposit": {
+        "name": {
+            "en": "Deposit",
+            "ru": "Депозит"
+        },
+        "rate_per_day": 0.02,
+        "min_amount": 100
+    },
+    "ui": {
+        "buttons": {
+            "take_loan": {
+                "en": "Take Loan",
+                "ru": "Взять кредит"
+            },
+            "repay_loan": {
+                "en": "Repay Loan",
+                "ru": "Погасить кредит"
+            },
+            "open_deposit": {
+                "en": "Open Deposit",
+                "ru": "Открыть депозит"
+            },
+            "close_deposit": {
+                "en": "Close Deposit",
+                "ru": "Закрыть депозит"
+            }
+        },
+        "labels": {
+            "rate": {
+                "en": "Rate",
+                "ru": "Ставка"
+            },
+            "per_day": {
+                "en": "per day",
+                "ru": "в день"
+            },
+            "maximum": {
+                "en": "Maximum",
+                "ru": "Максимум"
+            },
+            "minimum": {
+                "en": "Minimum",
+                "ru": "Минимум"
+            },
+            "current_loan": {
+                "en": "Current Loan",
+                "ru": "Текущий кредит"
+            },
+            "current_deposit": {
+                "en": "Current Deposit",
+                "ru": "Текущий депозит"
+            }
+        }
+    }
+}

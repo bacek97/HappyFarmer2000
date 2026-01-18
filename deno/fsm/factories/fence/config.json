@@ -1,0 +1,25 @@
+{
+    "code": "fence",
+    "name": {
+        "en": "Fence",
+        "ru": "Забор"
+    },
+    "description": {
+        "en": "Farm fence",
+        "ru": "Забор фермы"
+    },
+    "decoration": true,
+    "position": {
+        "x": 0,
+        "y": -75
+    },
+    "size": {
+        "width": 450,
+        "height": 60
+    },
+    "stages": {
+        "idle": {
+            "image": "fsm/factories/fence/fence.png"
+        }
+    }
+}

@@ -1,0 +1,81 @@
+{
+  "code": "tomato",
+  "name": {
+    "en": "Tomato",
+    "ru": "Помидор"
+  },
+  "description": {
+    "en": "A juicy red vegetable",
+    "ru": "Сочный красный овощ"
+  },
+  "buy_silver": 15,
+  "exp": 10,
+  "level": 1,
+  "stage_times": [
+    60,
+    120,
+    180,
+    60
+  ],
+  "wither_time": 3600,
+  "pest_chance": 0.1,
+  "water_chance": 0.3,
+  "stages": {
+    "seed": {
+      "messages": {
+        "en": "Seed",
+        "ru": "Семя"
+      },
+      "image": "/images/crops/tomato/seed.png"
+    },
+    "sprout": {
+      "messages": {
+        "en": "Sprout",
+        "ru": "Росток"
+      },
+      "image": "/images/crops/tomato/sprout.png"
+    },
+    "growing": {
+      "messages": {
+        "en": "Growing",
+        "ru": "Рост"
+      },
+      "image": "/images/crops/tomato/growing.png"
+    },
+    "ripe": {
+      "messages": {
+        "en": "Ripe",
+        "ru": "Созрело"
+      },
+      "image": "/images/crops/tomato/ripe.png"
+    },
+    "withered": {
+      "messages": {
+        "en": "Withered",
+        "ru": "Увяло"
+      },
+      "image": "/images/crops/tomato/withered.png"
+    }
+  },
+  "social": {
+    "steal_percent": 20,
+    "steals_per_neighbor": 3,
+    "waters_per_neighbor": 5,
+    "water_exp": 5,
+    "remove_pest_exp": 3
+  },
+  "products": [
+    {
+      "code": "tomato",
+      "name": {
+        "en": "Tomato",
+        "ru": "Помидор"
+      },
+      "yield": [
+        3,
+        5
+      ],
+      "sell_silver": 40
+    }
+  ]
+}

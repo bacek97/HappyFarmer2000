@@ -1,0 +1,81 @@
+{
+    "code": "strawberry",
+    "name": {
+        "en": "Strawberry",
+        "ru": "Клубника"
+    },
+    "description": {
+        "en": "Sweet red berry",
+        "ru": "Сладкая красная ягода"
+    },
+    "buy_silver": 50,
+    "exp": 25,
+    "level": 5,
+    "stage_times": [
+        120,
+        180,
+        240,
+        120
+    ],
+    "wither_time": 3000,
+    "pest_chance": 0.2,
+    "water_chance": 0.4,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "/images/crops/strawberry/seed.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "/images/crops/strawberry/sprout.png"
+        },
+        "growing": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "/images/crops/strawberry/growing.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "/images/crops/strawberry/ripe.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "/images/crops/strawberry/withered.png"
+        }
+    },
+    "social": {
+        "steal_percent": 25,
+        "steals_per_neighbor": 2,
+        "waters_per_neighbor": 4,
+        "water_exp": 8,
+        "remove_pest_exp": 5
+    },
+    "products": [
+        {
+            "code": "strawberry",
+            "name": {
+                "en": "Strawberry",
+                "ru": "Клубника"
+            },
+            "yield": [
+                4,
+                8
+            ],
+            "sell_silver": 120
+        }
+    ]
+}

@@ -1,0 +1,59 @@
+{
+    "code": "items",
+    "name": {
+        "en": "Common Items",
+        "ru": "Общие предметы"
+    },
+    "feed": {
+        "name": {
+            "en": "Animal Feed",
+            "ru": "Корм"
+        },
+        "description": {
+            "en": "Feed your animals",
+            "ru": "Покормите животных"
+        },
+        "image": "/images/ui/items/feed.png",
+        "icon": "/images/ui/items/feed_icon.png",
+        "buy_silver": 10
+    },
+    "medicine": {
+        "name": {
+            "en": "Medicine",
+            "ru": "Лекарство"
+        },
+        "description": {
+            "en": "Cure sick animals",
+            "ru": "Вылечите больных животных"
+        },
+        "image": "/images/ui/items/medicine.png",
+        "icon": "/images/ui/items/medicine_icon.png",
+        "buy_silver": 30
+    },
+    "fertilizer": {
+        "name": {
+            "en": "Fertilizer",
+            "ru": "Удобрение"
+        },
+        "description": {
+            "en": "Speed up crop growth",
+            "ru": "Ускорьте рост культур"
+        },
+        "image": "/images/ui/items/fertilizer.png",
+        "icon": "/images/ui/items/fertilizer_icon.png",
+        "buy_silver": 25
+    },
+    "pesticide": {
+        "name": {
+            "en": "Pesticide",
+            "ru": "Пестицид"
+        },
+        "description": {
+            "en": "Remove pests instantly",
+            "ru": "Мгновенно удалите вредителей"
+        },
+        "image": "/images/ui/items/pesticide.png",
+        "icon": "/images/ui/items/pesticide_icon.png",
+        "buy_silver": 15
+    }
+}

@@ -1,0 +1,37 @@
+{
+    "code": "villages",
+    "name": {
+        "en": "Villages",
+        "ru": "Деревни"
+    },
+    "description": {
+        "en": "Join or create a village",
+        "ru": "Вступите или создайте деревню"
+    },
+    "create_cost": 500,
+    "max_members": 50,
+    "invite_expire_hours": 48,
+    "roles": [
+        {
+            "code": "leader",
+            "name": {
+                "en": "Leader",
+                "ru": "Лидер"
+            }
+        },
+        {
+            "code": "elder",
+            "name": {
+                "en": "Elder",
+                "ru": "Старейшина"
+            }
+        },
+        {
+            "code": "member",
+            "name": {
+                "en": "Member",
+                "ru": "Участник"
+            }
+        }
+    ]
+}

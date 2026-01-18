@@ -1,0 +1,73 @@
+{
+    "code": "wheat",
+    "name": {
+        "en": "Wheat",
+        "ru": "Пшеница"
+    },
+    "description": {
+        "en": "Golden grain for bread",
+        "ru": "Золотое зерно для хлеба"
+    },
+    "buy_silver": 5,
+    "exp": 5,
+    "level": 1,
+    "stage_times": [
+        30,
+        60,
+        90
+    ],
+    "wither_time": 1800,
+    "pest_chance": 0.05,
+    "water_chance": 0.2,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "/images/crops/wheat/seed.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "/images/crops/wheat/sprout.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "/images/crops/wheat/ripe.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "/images/crops/wheat/withered.png"
+        }
+    },
+    "social": {
+        "steal_percent": 15,
+        "steals_per_neighbor": 4,
+        "waters_per_neighbor": 6,
+        "water_exp": 3,
+        "remove_pest_exp": 2
+    },
+    "products": [
+        {
+            "code": "wheat",
+            "name": {
+                "en": "Wheat",
+                "ru": "Пшеница"
+            },
+            "yield": [
+                2,
+                4
+            ],
+            "sell_silver": 15
+        }
+    ]
+}

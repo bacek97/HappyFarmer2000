@@ -1,0 +1,81 @@
+{
+    "code": "red_caviar",
+    "name": {
+        "en": "Red Caviar",
+        "ru": "Красная икра"
+    },
+    "description": {
+        "en": "Precious salmon roe",
+        "ru": "Ценная лососёвая икра"
+    },
+    "buy_silver": 100,
+    "exp": 50,
+    "level": 12,
+    "stage_times": [
+        200,
+        300,
+        400,
+        200
+    ],
+    "wither_time": 5000,
+    "pest_chance": 0.05,
+    "water_chance": 0.2,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "fsm/crops/red_caviar/seed.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "fsm/crops/red_caviar/sprout.png"
+        },
+        "growing": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "fsm/crops/red_caviar/growing.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "fsm/crops/red_caviar/seed.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "fsm/crops/red_caviar/withered.png"
+        }
+    },
+    "social": {
+        "steal_percent": 30,
+        "steals_per_neighbor": 1,
+        "waters_per_neighbor": 3,
+        "water_exp": 15,
+        "remove_pest_exp": 10
+    },
+    "products": [
+        {
+            "code": "red_caviar",
+            "name": {
+                "en": "Red Caviar",
+                "ru": "Красная икра"
+            },
+            "yield": [
+                1,
+                3
+            ],
+            "sell_silver": 250
+        }
+    ]
+}

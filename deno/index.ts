@@ -250,9 +250,120 @@ async function handleTelegramWebhook(req: Request): Promise<Response> {
   return new Response("OK");
 }
 
+// ===== CONFIG SCANNER =====
+
+interface GameConfig {
+  code: string;
+  name?: { en: string; ru: string };
+  [key: string]: unknown;
+}
+
+interface CategoryConfigs {
+  [code: string]: GameConfig;
+}
+
+// Dynamic storage - categories discovered at runtime
+const CONFIGS: Record<string, CategoryConfigs> = {};
+
+// FSM modules storage
+const FSM_MODULES: Record<string, Record<string, unknown>> = {};
+const ENDPOINTS: Map<string, { category: string; handler: string; module: Record<string, unknown> }> = new Map();
+
+async function scanConfigs() {
+  const fsmPath = "./fsm";
+
+  // Scan all category directories in fsm/
+  for await (const categoryEntry of Deno.readDir(fsmPath)) {
+    if (!categoryEntry.isDirectory) continue;
+
+    const categoryName = categoryEntry.name;
+    const categoryPath = `${fsmPath}/${categoryName}`;
+
+    CONFIGS[categoryName] = {};
+
+    // Load FSM.ts if exists
+    const fsmFile = `${categoryPath}/FSM.ts`;
+    try {
+      const module = await import(fsmFile);
+      FSM_MODULES[categoryName] = module;
+
+      // Register endpoints from ENDPOINTS export
+      if (module.ENDPOINTS) {
+        for (const [handlerName, path] of Object.entries(module.ENDPOINTS)) {
+          const handler = `handle${handlerName.charAt(0) + handlerName.slice(1).toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`;
+          ENDPOINTS.set(path as string, { category: categoryName, handler, module });
+          console.log(`Endpoint: ${path} -> ${categoryName}.${handler}`);
+        }
+      }
+    } catch { /* no FSM.ts */ }
+
+    // Scan all items in category
+    for await (const itemEntry of Deno.readDir(categoryPath)) {
+      if (!itemEntry.isDirectory) continue;
+
+      const configPath = `${categoryPath}/${itemEntry.name}/config.json`;
+      try {
+        const content = await Deno.readTextFile(configPath);
+        const config = JSON.parse(content) as GameConfig;
+        CONFIGS[categoryName][itemEntry.name] = config;
+        console.log(`Loaded: ${categoryName}/${itemEntry.name}`);
+      } catch { /* skip */ }
+    }
+  }
+
+  // Log summary
+  const summary: Record<string, number> = {};
+  for (const [key, value] of Object.entries(CONFIGS)) {
+    summary[key] = Object.keys(value).length;
+  }
+  console.log("Configs loaded:", summary);
+  console.log("Endpoints registered:", ENDPOINTS.size);
+}
+
+// ===== GAME API HANDLERS =====
+
+function handleGetConfigs(category?: string, code?: string): Response {
+  const headers = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" };
+
+  if (!category) {
+    // Return all categories with their item codes
+    const summary: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(CONFIGS)) {
+      summary[key] = Object.keys(value);
+    }
+    return new Response(JSON.stringify(summary), { headers });
+  }
+
+  const catData = CONFIGS[category];
+  if (!catData) {
+    return new Response(JSON.stringify({ error: "Category not found" }), { status: 404, headers });
+  }
+
+  if (!code) {
+    return new Response(JSON.stringify(catData), { headers });
+  }
+
+  const config = catData[code];
+  if (!config) {
+    return new Response(JSON.stringify({ error: "Config not found" }), { status: 404, headers });
+  }
+
+  return new Response(JSON.stringify(config), { headers });
+}
+
+// ===== MAIN SERVER =====
+
+await scanConfigs();
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname;
+  const headers = { "Access-Control-Allow-Origin": "*" };
+
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: { ...headers, "Access-Control-Allow-Methods": "GET, POST", "Access-Control-Allow-Headers": "*" } });
+  }
 
   if (path === "/v1/auth/claims") {
     return await handleAuth(req);
@@ -266,5 +377,30 @@ Deno.serve(async (req) => {
     return await handleTelegramWebhook(req);
   }
 
+  // Game API: GET /api/configs/:category?/:code?
+  if (path.startsWith("/api/configs")) {
+    const parts = path.split("/").filter(Boolean);
+    const category = parts[2];
+    const code = parts[3];
+    return handleGetConfigs(category, code);
+  }
+
+  // List all available endpoints
+  if (path === "/api/endpoints") {
+    const list = Array.from(ENDPOINTS.entries()).map(([p, e]) => ({ path: p, category: e.category, handler: e.handler }));
+    return new Response(JSON.stringify(list), { headers: { ...headers, "Content-Type": "application/json" } });
+  }
+
+  // Dynamic FSM endpoints
+  const endpoint = ENDPOINTS.get(path);
+  if (endpoint) {
+    return new Response(JSON.stringify({
+      endpoint: path,
+      category: endpoint.category,
+      handler: endpoint.handler,
+      status: "DB layer needed",
+      params: Object.fromEntries(url.searchParams)
+    }), { headers: { ...headers, "Content-Type": "application/json" } });
+  }
   return new Response("Not Found", { status: 404 });
 });

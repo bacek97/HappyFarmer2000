@@ -1,0 +1,70 @@
+{
+    "code": "chicken",
+    "name": {
+        "en": "Chicken",
+        "ru": "Курица"
+    },
+    "description": {
+        "en": "Lays eggs",
+        "ru": "Несёт яйца"
+    },
+    "buy_silver": 100,
+    "feed_interval": 3600,
+    "sick_time": 7200,
+    "cure_price": 20,
+    "exp": 5,
+    "level": 1,
+    "stages": {
+        "hungry": {
+            "messages": {
+                "en": "Hungry",
+                "ru": "Голодный"
+            },
+            "image": "/images/animals/chicken/hungry.png"
+        },
+        "fed": {
+            "messages": {
+                "en": "Fed",
+                "ru": "Сытый"
+            },
+            "image": "/images/animals/chicken/fed.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готов"
+            },
+            "image": "/images/animals/chicken/ready.png"
+        },
+        "sick": {
+            "messages": {
+                "en": "Sick",
+                "ru": "Болен"
+            },
+            "image": "/images/animals/chicken/sick.png"
+        }
+    },
+    "products": [
+        {
+            "code": "egg",
+            "name": {
+                "en": "Egg",
+                "ru": "Яйцо"
+            },
+            "type": "renewable",
+            "produce_time": 1800,
+            "count": 1,
+            "sell_silver": 10
+        },
+        {
+            "code": "chicken_meat",
+            "name": {
+                "en": "Chicken Meat",
+                "ru": "Куриное мясо"
+            },
+            "type": "terminal",
+            "count": 2,
+            "sell_silver": 40
+        }
+    ]
+}

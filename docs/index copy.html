@@ -25,19 +25,19 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* Game world - fixed size, background never crops */
+        /* Game world - fixed size that scales with background */
         #game-world {
-            position: absolute;
-            width: 1200px;
-            height: 900px;
-            left: 50%;
-            top: 50%;
-            margin-left: -600px;
-            margin-top: -450px;
-            background: url('../deno/fsm/ui/background.jpg') no-repeat;
-            background-size: 100% 100%;
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: url('../deno/fsm/ui/background.jpg') center center;
+            background-size: cover;
+            transform-origin: center center;
         }
 
         /* Top Bar */
@@ -49,7 +49,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            /* z-index: 100; */
+            z-index: 100;
         }
 
         .user-panel {
@@ -174,7 +174,7 @@
 
         .plot:hover {
             filter: brightness(1.2);
-            /* z-index: 10; */
+            z-index: 10;
         }
 
         .plot .crop-img {
@@ -211,7 +211,7 @@
             display: flex;
             gap: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            /* z-index: 100; */
+            z-index: 100;
         }
 
         .tool {
@@ -242,11 +242,11 @@
             position: absolute;
             cursor: pointer;
             transition: transform 0.2s;
-            /* z-index: 50; */
+            z-index: 50;
         }
 
         .map-object:hover {
-            filter: brightness(1.1);
+            transform: scale(1.15);
         }
 
         .map-object .object-icon {
@@ -279,7 +279,7 @@
             display: none;
             justify-content: center;
             align-items: center;
-            /* z-index: 1000; */
+            z-index: 1000;
         }
 
         .modal.active {
@@ -411,12 +411,11 @@
     <div id="game">
         <!-- Game World (scales with background) -->
         <div id="game-world">
-            <!-- Factories/Buildings layer (behind plots) -->
-            <div id="factories-layer"></div>
-            <!-- Farm Grid (in front) -->
+            <!-- Farm Grid -->
             <div class="farm-container">
                 <div class="farm-grid" id="farm-grid"></div>
             </div>
+            <!-- Factories/Buildings will be appended here by JS -->
         </div>
 
         <!-- UI Layer (fixed to screen) -->
@@ -485,59 +484,22 @@
 
         function text(obj) { return obj?.[LANG] || obj?.en || ''; }
 
-        // Map panning functionality
-        let isPanning = false, startX = 0, startY = 0, panX = 0, panY = 0;
-
-        function initMapPanning() {
+        // Scale game-world to fit screen while maintaining aspect ratio
+        const WORLD_WIDTH = 800, WORLD_HEIGHT = 600;
+        function scaleGameWorld() {
             const gameWorld = document.getElementById('game-world');
+            if (!gameWorld) return;
 
-            // Mouse events (desktop)
-            gameWorld.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.map-object, .plot, .tool, .action-btn')) return;
-                isPanning = true;
-                startX = e.clientX - panX;
-                startY = e.clientY - panY;
-                gameWorld.style.cursor = 'grabbing';
-            });
+            const screenW = window.innerWidth, screenH = window.innerHeight;
+            const scaleX = screenW / WORLD_WIDTH;
+            const scaleY = screenH / WORLD_HEIGHT;
+            const scale = Math.min(scaleX, scaleY);
 
-            document.addEventListener('mousemove', (e) => {
-                if (!isPanning) return;
-                panX = e.clientX - startX;
-                panY = e.clientY - startY;
-                updatePan();
-            });
-
-            document.addEventListener('mouseup', () => {
-                isPanning = false;
-                document.getElementById('game-world').style.cursor = 'grab';
-            });
-
-            // Touch events (mobile)
-            gameWorld.addEventListener('touchstart', (e) => {
-                if (e.target.closest('.map-object, .plot, .tool, .action-btn')) return;
-                if (e.touches.length === 1) {
-                    isPanning = true;
-                    startX = e.touches[0].clientX - panX;
-                    startY = e.touches[0].clientY - panY;
-                }
-            }, { passive: true });
-
-            document.addEventListener('touchmove', (e) => {
-                if (!isPanning || e.touches.length !== 1) return;
-                panX = e.touches[0].clientX - startX;
-                panY = e.touches[0].clientY - startY;
-                updatePan();
-            }, { passive: true });
-
-            document.addEventListener('touchend', () => { isPanning = false; });
-
-            gameWorld.style.cursor = 'grab';
+            gameWorld.style.transform = `scale(${scale})`;
         }
 
-        function updatePan() {
-            const gameWorld = document.getElementById('game-world');
-            gameWorld.style.transform = `translate(${panX}px, ${panY}px)`;
-        }
+        window.addEventListener('resize', scaleGameWorld);
+        window.addEventListener('load', scaleGameWorld);
 
         async function init() {
             const user = tg?.initDataUnsafe?.user;
@@ -548,21 +510,15 @@
             const plotCfg = await api('/api/configs/plots/plot');
             document.getElementById('level-text').textContent = `Level 5`;
 
-            // Load map objects (factories) FIRST so they appear behind plots
-            await loadMapObjects();
-
             // Create plots
             const grid = document.getElementById('farm-grid');
             const emptyPlotImg = plotCfg?.stages?.empty?.image;
-            const blockedPlotImg = plotCfg?.stages?.blocked?.image;
-            const basePlots = plotCfg?.base_plots || 6;
-            const totalPlots = plotCfg?.total_plots || 32;
             const cols = 4;
+            const tileW = 100, tileH = 50; // isometric tile dimensions
             const gapX = 52, gapY = 26; // half tile size for isometric grid
 
-            for (let i = 0; i < totalPlots; i++) {
-                const isBlocked = i >= basePlots;
-                plots[i] = { state: isBlocked ? 'blocked' : 'empty', crop: null, stage: 0 };
+            for (let i = 0; i < (plotCfg?.base_plots || 12); i++) {
+                plots[i] = { state: 'empty', crop: null, stage: 0 };
                 const row = Math.floor(i / cols);
                 const col = i % cols;
 
@@ -571,17 +527,12 @@
                 const y = (col + row) * gapY + 50;
 
                 const plot = document.createElement('div');
-                plot.className = isBlocked ? 'plot blocked' : 'plot empty';
+                plot.className = 'plot empty';
                 plot.dataset.id = i;
                 plot.style.left = `${x}px`;
                 plot.style.top = `${y}px`;
-
-                const plotImg = isBlocked ? blockedPlotImg : emptyPlotImg;
-                if (plotImg) {
-                    plot.style.backgroundImage = `url('../deno/${plotImg}')`;
-                }
-                if (isBlocked) {
-                    plot.style.opacity = '0.5';
+                if (emptyPlotImg) {
+                    plot.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
                 }
                 plot.onclick = () => onPlotClick(i);
                 grid.appendChild(plot);
@@ -596,47 +547,35 @@
                 };
             });
 
-            // Enable map panning
-            initMapPanning();
+            // Load map objects (factories)
+            await loadMapObjects();
         }
 
         async function loadMapObjects() {
-            const factoriesLayer = document.getElementById('factories-layer');
+            const gameWorld = document.getElementById('game-world');
             const factories = await api('/api/configs/factories');
 
             for (const [code, cfg] of Object.entries(factories || {})) {
                 if (!cfg.position) continue; // Skip factories without position
 
-                const isDecoration = cfg.decoration === true;
                 const obj = document.createElement('div');
-                obj.className = isDecoration ? 'map-object decoration' : 'map-object';
-                // Position from center using translate for proper background attachment
-                obj.style.left = '50%';
-                obj.style.top = '50%';
-                obj.style.transform = `translate(${cfg.position.x}%, ${cfg.position.y}%)`;
-                if (isDecoration) {
-                    obj.style.pointerEvents = 'none';
-                    obj.style.cursor = 'default';
-                }
+                obj.className = 'map-object';
+                obj.style.left = `${cfg.position.x}px`;
+                obj.style.top = `${cfg.position.y}px`;
 
                 // Get image from stages (default to idle)
                 const stageImage = cfg.stages?.idle?.image || cfg.stages?.ready?.image;
                 const imagePath = stageImage ? `../deno/${stageImage}` : null;
 
-                const iconWidth = cfg.size?.width || 80;
                 const iconHtml = imagePath
-                    ? `<img src="${imagePath}" alt="${text(cfg.name)}" style="width:${iconWidth}px;height:auto;">`
+                    ? `<img src="${imagePath}" alt="${text(cfg.name)}" style="width:80px;height:auto;">`
                     : `<span style="font-size:70px">${cfg.icon || '🏭'}</span>`;
-
-                // Decorations don't have labels
-                obj.innerHTML = isDecoration
-                    ? `<div class="object-icon">${iconHtml}</div>`
-                    : `<div class="object-icon">${iconHtml}</div><div class="object-label">${text(cfg.name)}</div>`;
-
-                if (!isDecoration) {
-                    obj.onclick = () => showFactoryModal(code, cfg);
-                }
-                factoriesLayer.appendChild(obj);
+                obj.innerHTML = `
+                    <div class="object-icon">${iconHtml}</div>
+                    <div class="object-label">${text(cfg.name)}</div>
+                `;
+                obj.onclick = () => showFactoryModal(code, cfg);
+                gameWorld.appendChild(obj);
             }
         }
 

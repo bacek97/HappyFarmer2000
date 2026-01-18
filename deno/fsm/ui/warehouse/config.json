@@ -1,0 +1,41 @@
+{
+    "code": "warehouse",
+    "name": {
+        "en": "Warehouse",
+        "ru": "Склад"
+    },
+    "icon": "📦",
+    "description": {
+        "en": "Store your items",
+        "ru": "Храните ваши предметы"
+    },
+    "base_capacity": 50,
+    "upgrade_cost": 500,
+    "capacity_per_upgrade": 25,
+    "ui": {
+        "buttons": {
+            "sell": {
+                "en": "Sell",
+                "ru": "Продать"
+            },
+            "upgrade": {
+                "en": "Upgrade",
+                "ru": "Улучшить"
+            }
+        },
+        "labels": {
+            "capacity": {
+                "en": "Capacity",
+                "ru": "Вместимость"
+            },
+            "items": {
+                "en": "Items",
+                "ru": "Предметы"
+            },
+            "empty": {
+                "en": "Warehouse is empty",
+                "ru": "Склад пуст"
+            }
+        }
+    }
+}

@@ -1,0 +1,98 @@
+{
+    "code": "buttons",
+    "name": {
+        "en": "Buttons",
+        "ru": "Кнопки"
+    },
+    "harvest": {
+        "name": {
+            "en": "Harvest",
+            "ru": "Собрать"
+        },
+        "image": "/images/ui/buttons/harvest.png"
+    },
+    "water": {
+        "name": {
+            "en": "Water",
+            "ru": "Полить"
+        },
+        "image": "/images/ui/buttons/water.png"
+    },
+    "feed": {
+        "name": {
+            "en": "Feed",
+            "ru": "Покормить"
+        },
+        "image": "/images/ui/buttons/feed.png"
+    },
+    "collect": {
+        "name": {
+            "en": "Collect",
+            "ru": "Собрать"
+        },
+        "image": "/images/ui/buttons/collect.png"
+    },
+    "cure": {
+        "name": {
+            "en": "Cure",
+            "ru": "Вылечить"
+        },
+        "image": "/images/ui/buttons/cure.png"
+    },
+    "steal": {
+        "name": {
+            "en": "Steal",
+            "ru": "Украсть"
+        },
+        "image": "/images/ui/buttons/steal.png"
+    },
+    "remove_pest": {
+        "name": {
+            "en": "Remove Pest",
+            "ru": "Убрать вредителя"
+        },
+        "image": "/images/ui/buttons/remove_pest.png"
+    },
+    "plow": {
+        "name": {
+            "en": "Plow",
+            "ru": "Вспахать"
+        },
+        "image": "/images/ui/buttons/plow.png"
+    },
+    "plant": {
+        "name": {
+            "en": "Plant",
+            "ru": "Посадить"
+        },
+        "image": "/images/ui/buttons/plant.png"
+    },
+    "start": {
+        "name": {
+            "en": "Start",
+            "ru": "Начать"
+        },
+        "image": "/images/ui/buttons/start.png"
+    },
+    "upgrade": {
+        "name": {
+            "en": "Upgrade",
+            "ru": "Улучшить"
+        },
+        "image": "/images/ui/buttons/upgrade.png"
+    },
+    "sell": {
+        "name": {
+            "en": "Sell",
+            "ru": "Продать"
+        },
+        "image": "/images/ui/buttons/sell.png"
+    },
+    "buy": {
+        "name": {
+            "en": "Buy",
+            "ru": "Купить"
+        },
+        "image": "/images/ui/buttons/buy.png"
+    }
+}

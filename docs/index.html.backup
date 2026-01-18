@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Telegram Mini App +Hasura</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            margin: 0;
+            padding: 16px;
+        }
+
+        .user-card {
+            border: 1px solid #ccc;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        button {
+            padding: 8px 12px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <h1>Привет, <span id="user-name">Гость</span>!</h1>
+
+        <div class="user-card">
+            <p>ID: <span id="user-id">---</span></p>
+            <p>Username: @<span id="user-username">---</span></p>
+            <p>Статус в БД: <strong id="db-status">проверка…</strong></p>
+        </div>
+
+        <button id="add-me" disabled>Добавить меня</button>
+        <button id="delete-me" disabled>Удалить меня</button>
+
+        <h2>Магазин</h2>
+        <div id="shop-items">Загрузка...</div>
+
+        <h2>Мои покупки</h2>
+        <div id="my-payments">Загрузка...</div>
+
+        <button id="close-app">Закрыть приложение</button>
+    </div>
+
+    <script>
+        /* ===== Telegram ===== */
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const user = tg.initDataUnsafe?.user;
+        const initData = tg.initData; // ВАЖНО
+
+        if (user) {
+            document.getElementById("user-name").innerText = user.first_name;
+            document.getElementById("user-id").innerText = user.id;
+            document.getElementById("user-username").innerText =
+                user.username || "n/a";
+        }
+
+        document
+            .getElementById("close-app")
+            .addEventListener("click", () => tg.close());
+
+        /* ===== Hasura ===== */
+
+        const HASURA_URL = "https://happy-farmer-2000.hasura.app/v1/graphql";
+
+        async function gql(query, variables = {}) {
+            const res = await fetch(HASURA_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `${initData}`
+                },
+                body: JSON.stringify({ query, variables })
+            });
+
+            const json = await res.json();
+
+            if (json.errors) {
+                console.error(json.errors);
+                throw new Error(JSON.stringify(json.errors));
+            }
+
+            return json;
+        }
+
+        /* ===== Logic ===== */
+
+        async function checkMe() {
+            const res = await gql(`
+        query {
+          users {
+            id
+          }
+        }
+      `);
+
+            const exists = res.data.users.length > 0;
+
+            document.getElementById("db-status").innerText =
+                exists ? "есть" : "нет";
+
+            document.getElementById("add-me").disabled = exists;
+            document.getElementById("delete-me").disabled = !exists;
+        }
+
+        async function addMe() {
+            await gql(
+                `
+        mutation ($user: users_insert_input!) {
+          insert_users_one(object: $user) {
+            id
+          }
+        }
+        `,
+                {
+                    user: {
+                        username: user.username,
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        language_code: user.language_code,
+                        allows_write_to_pm: user.allows_write_to_pm,
+                        photo_url: user.photo_url
+                    }
+                }
+            );
+
+            checkMe();
+        }
+
+        async function deleteMe() {
+            await gql(`
+        mutation {
+          delete_users {
+            affected_rows
+          }
+        }
+      `);
+
+            checkMe();
+        }
+
+        async function loadShop() {
+            const res = await gql(`
+                query {
+                    premium_items {
+                        id
+                        name
+                        price_stars
+                    }
+                }
+            `);
+
+            const items = res.data.premium_items;
+            const container = document.getElementById("shop-items");
+            container.innerHTML = "";
+
+            if (items.length === 0) {
+                container.innerText = "Магазин пуст";
+                return;
+            }
+
+            items.forEach(item => {
+                const div = document.createElement("div");
+                div.className = "user-card";
+                div.innerHTML = `
+                    <p><strong>${item.name}</strong></p>
+                    <p>Цена: ${item.price_stars} ⭐</p>
+                    <button onclick="buyItem('${item.id}')">Купить</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadPayments() {
+            const res = await gql(`
+                query {
+                    payments(order_by: {created_at: desc}) {
+                        id
+                        amount
+                        created_at
+                        premium_item {
+                            name
+                        }
+                    }
+                }
+            `);
+
+            const payments = res.data.payments;
+            const container = document.getElementById("my-payments");
+            container.innerHTML = "";
+
+            if (payments.length === 0) {
+                container.innerText = "Покупок нет";
+                return;
+            }
+
+            payments.forEach(p => {
+                const div = document.createElement("div");
+                div.className = "user-card";
+                const date = new Date(p.created_at).toLocaleString();
+                div.innerHTML = `
+                    <p><strong>${p.premium_item?.name || "Неизвестный товар"}</strong></p>
+                    <p>Цена: ${p.amount} ⭐</p>
+                    <p><small>${date}</small></p>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function buyItem(itemId) {
+            try {
+                const res = await gql(`
+                    mutation($id: uuid!) {
+                        create_invoice(item_id: $id) {
+                            invoice_link
+                        }
+                    }
+                `, { id: itemId });
+
+                const link = res.data.create_invoice.invoice_link;
+                tg.openInvoice(link, (status) => {
+                    if (status === "paid") {
+                        tg.showAlert("Оплата прошла успешно!");
+                        loadPayments();
+                    } else if (status === "cancelled") {
+                        tg.showAlert("Оплата отменена.");
+                    } else {
+                        tg.showAlert("Статус оплаты: " + status);
+                    }
+                });
+            } catch (e) {
+                tg.showAlert("Ошибка при создании счета: " + e.message);
+            }
+        }
+
+        // Expose buyItem to global scope for onclick
+        window.buyItem = buyItem;
+
+        document.getElementById("add-me").onclick = addMe;
+        document.getElementById("delete-me").onclick = deleteMe;
+
+        /* ===== Init ===== */
+
+        if (user && initData) {
+            checkMe();
+            loadShop();
+            loadPayments();
+        } else {
+            document.getElementById("db-status").innerText =
+                "нет initData";
+        }
+    </script>
+</body>
+
+</html>

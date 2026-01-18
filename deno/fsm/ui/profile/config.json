@@ -1,0 +1,57 @@
+{
+    "code": "profile",
+    "name": {
+        "en": "Profile",
+        "ru": "Профиль"
+    },
+    "description": {
+        "en": "Your farm stats",
+        "ru": "Статистика вашей фермы"
+    },
+    "level_exp": [
+        100,
+        300,
+        600,
+        1000,
+        1500,
+        2100,
+        2800,
+        3600,
+        4500,
+        5500
+    ],
+    "stats": [
+        {
+            "code": "silver",
+            "name": {
+                "en": "Silver",
+                "ru": "Серебро"
+            },
+            "icon": "silver"
+        },
+        {
+            "code": "gold",
+            "name": {
+                "en": "Gold",
+                "ru": "Золото"
+            },
+            "icon": "gold"
+        },
+        {
+            "code": "exp",
+            "name": {
+                "en": "Experience",
+                "ru": "Опыт"
+            },
+            "icon": "exp"
+        },
+        {
+            "code": "delight",
+            "name": {
+                "en": "Delight",
+                "ru": "Восторг"
+            },
+            "icon": "delight"
+        }
+    ]
+}

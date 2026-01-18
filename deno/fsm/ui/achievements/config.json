@@ -1,0 +1,67 @@
+{
+    "code": "achievements",
+    "name": {
+        "en": "Achievements",
+        "ru": "Достижения"
+    },
+    "first_harvest": {
+        "name": {
+            "en": "First Harvest",
+            "ru": "Первый урожай"
+        },
+        "description": {
+            "en": "Harvest your first crop",
+            "ru": "Соберите первый урожай"
+        },
+        "image": "/images/ui/achievements/first_harvest.png",
+        "reward_silver": 50
+    },
+    "animal_lover": {
+        "name": {
+            "en": "Animal Lover",
+            "ru": "Любитель животных"
+        },
+        "description": {
+            "en": "Buy 10 animals",
+            "ru": "Купите 10 животных"
+        },
+        "image": "/images/ui/achievements/animal_lover.png",
+        "reward_silver": 200
+    },
+    "master_chef": {
+        "name": {
+            "en": "Master Chef",
+            "ru": "Шеф-повар"
+        },
+        "description": {
+            "en": "Complete 50 recipes",
+            "ru": "Выполните 50 рецептов"
+        },
+        "image": "/images/ui/achievements/master_chef.png",
+        "reward_silver": 500
+    },
+    "friendly_neighbor": {
+        "name": {
+            "en": "Friendly Neighbor",
+            "ru": "Добрый сосед"
+        },
+        "description": {
+            "en": "Help 100 neighbors",
+            "ru": "Помогите 100 соседям"
+        },
+        "image": "/images/ui/achievements/friendly_neighbor.png",
+        "reward_silver": 300
+    },
+    "millionaire": {
+        "name": {
+            "en": "Millionaire",
+            "ru": "Миллионер"
+        },
+        "description": {
+            "en": "Earn 1,000,000 silver",
+            "ru": "Заработайте 1,000,000 серебра"
+        },
+        "image": "/images/ui/achievements/millionaire.png",
+        "reward_gold": 10
+    }
+}

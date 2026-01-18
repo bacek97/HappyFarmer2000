@@ -1,0 +1,44 @@
+{
+    "code": "friends",
+    "name": {
+        "en": "Friends",
+        "ru": "Друзья"
+    },
+    "icon": "👥",
+    "description": {
+        "en": "Visit friends and help them",
+        "ru": "Посещайте друзей и помогайте им"
+    },
+    "daily_visits": 10,
+    "help_exp": 5,
+    "ui": {
+        "buttons": {
+            "add": {
+                "en": "Add Friend",
+                "ru": "Добавить друга"
+            },
+            "visit": {
+                "en": "Visit",
+                "ru": "Посетить"
+            },
+            "remove": {
+                "en": "Remove",
+                "ru": "Удалить"
+            }
+        },
+        "labels": {
+            "empty": {
+                "en": "Friends list is empty",
+                "ru": "Список друзей пуст"
+            },
+            "online": {
+                "en": "Online",
+                "ru": "Онлайн"
+            },
+            "offline": {
+                "en": "Offline",
+                "ru": "Оффлайн"
+            }
+        }
+    }
+}

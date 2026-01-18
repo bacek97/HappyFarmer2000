@@ -1,0 +1,81 @@
+{
+    "code": "corn",
+    "name": {
+        "en": "Corn",
+        "ru": "Кукуруза"
+    },
+    "description": {
+        "en": "Sweet yellow corn",
+        "ru": "Сладкая жёлтая кукуруза"
+    },
+    "buy_silver": 20,
+    "exp": 12,
+    "level": 3,
+    "stage_times": [
+        60,
+        90,
+        120,
+        60
+    ],
+    "wither_time": 2400,
+    "pest_chance": 0.15,
+    "water_chance": 0.25,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "/images/crops/corn/seed.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "/images/crops/corn/sprout.png"
+        },
+        "growing": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "/images/crops/corn/growing.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "/images/crops/corn/ripe.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "/images/crops/corn/withered.png"
+        }
+    },
+    "social": {
+        "steal_percent": 20,
+        "steals_per_neighbor": 3,
+        "waters_per_neighbor": 5,
+        "water_exp": 5,
+        "remove_pest_exp": 3
+    },
+    "products": [
+        {
+            "code": "corn",
+            "name": {
+                "en": "Corn",
+                "ru": "Кукуруза"
+            },
+            "yield": [
+                2,
+                3
+            ],
+            "sell_silver": 50
+        }
+    ]
+}

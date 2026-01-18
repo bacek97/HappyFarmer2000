@@ -1,0 +1,70 @@
+{
+    "code": "pig",
+    "name": {
+        "en": "Pig",
+        "ru": "Свинья"
+    },
+    "description": {
+        "en": "Produces bacon and pork",
+        "ru": "Даёт бекон и свинину"
+    },
+    "buy_silver": 400,
+    "feed_interval": 4800,
+    "sick_time": 8400,
+    "cure_price": 40,
+    "exp": 20,
+    "level": 7,
+    "stages": {
+        "hungry": {
+            "messages": {
+                "en": "Hungry",
+                "ru": "Голодный"
+            },
+            "image": "/images/animals/pig/hungry.png"
+        },
+        "fed": {
+            "messages": {
+                "en": "Fed",
+                "ru": "Сытый"
+            },
+            "image": "/images/animals/pig/fed.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готов"
+            },
+            "image": "/images/animals/pig/ready.png"
+        },
+        "sick": {
+            "messages": {
+                "en": "Sick",
+                "ru": "Болен"
+            },
+            "image": "/images/animals/pig/sick.png"
+        }
+    },
+    "products": [
+        {
+            "code": "bacon",
+            "name": {
+                "en": "Bacon",
+                "ru": "Бекон"
+            },
+            "type": "renewable",
+            "produce_time": 10800,
+            "count": 3,
+            "sell_silver": 35
+        },
+        {
+            "code": "pork",
+            "name": {
+                "en": "Pork",
+                "ru": "Свинина"
+            },
+            "type": "terminal",
+            "count": 6,
+            "sell_silver": 120
+        }
+    ]
+}

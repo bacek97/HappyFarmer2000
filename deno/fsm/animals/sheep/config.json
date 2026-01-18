@@ -1,0 +1,70 @@
+{
+    "code": "sheep",
+    "name": {
+        "en": "Sheep",
+        "ru": "Овца"
+    },
+    "description": {
+        "en": "Produces wool and mutton",
+        "ru": "Даёт шерсть и баранину"
+    },
+    "buy_silver": 300,
+    "feed_interval": 5400,
+    "sick_time": 9000,
+    "cure_price": 35,
+    "exp": 10,
+    "level": 3,
+    "stages": {
+        "hungry": {
+            "messages": {
+                "en": "Hungry",
+                "ru": "Голодный"
+            },
+            "image": "/images/animals/sheep/hungry.png"
+        },
+        "fed": {
+            "messages": {
+                "en": "Fed",
+                "ru": "Сытый"
+            },
+            "image": "/images/animals/sheep/fed.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готов"
+            },
+            "image": "/images/animals/sheep/ready.png"
+        },
+        "sick": {
+            "messages": {
+                "en": "Sick",
+                "ru": "Болен"
+            },
+            "image": "/images/animals/sheep/sick.png"
+        }
+    },
+    "products": [
+        {
+            "code": "wool",
+            "name": {
+                "en": "Wool",
+                "ru": "Шерсть"
+            },
+            "type": "renewable",
+            "produce_time": 7200,
+            "count": 1,
+            "sell_silver": 30
+        },
+        {
+            "code": "mutton",
+            "name": {
+                "en": "Mutton",
+                "ru": "Баранина"
+            },
+            "type": "terminal",
+            "count": 3,
+            "sell_silver": 80
+        }
+    ]
+}

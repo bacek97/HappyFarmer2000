@@ -1,0 +1,66 @@
+{
+    "code": "shop",
+    "name": {
+        "en": "Shop",
+        "ru": "Магазин"
+    },
+    "icon": "🛒",
+    "description": {
+        "en": "Buy seeds, animals and buildings",
+        "ru": "Покупайте семена, животных и здания"
+    },
+    "categories": [
+        {
+            "code": "crops",
+            "name": {
+                "en": "Seeds",
+                "ru": "Семена"
+            },
+            "icon": "🌱"
+        },
+        {
+            "code": "animals",
+            "name": {
+                "en": "Animals",
+                "ru": "Животные"
+            },
+            "icon": "🐄"
+        },
+        {
+            "code": "factories",
+            "name": {
+                "en": "Factories",
+                "ru": "Фабрики"
+            },
+            "icon": "🏭"
+        }
+    ],
+    "ui": {
+        "buttons": {
+            "buy": {
+                "en": "Buy",
+                "ru": "Купить"
+            }
+        },
+        "labels": {
+            "price": {
+                "en": "Price",
+                "ru": "Цена"
+            },
+            "level_required": {
+                "en": "Level required",
+                "ru": "Требуется уровень"
+            }
+        },
+        "messages": {
+            "success": {
+                "en": "Successfully purchased!",
+                "ru": "Успешно куплено!"
+            },
+            "not_enough": {
+                "en": "Not enough silver",
+                "ru": "Недостаточно серебра"
+            }
+        }
+    }
+}

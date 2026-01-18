@@ -1,0 +1,81 @@
+{
+    "code": "apple",
+    "name": {
+        "en": "Apple",
+        "ru": "Яблоко"
+    },
+    "description": {
+        "en": "Sweet red apple",
+        "ru": "Сладкое красное яблоко"
+    },
+    "buy_silver": 25,
+    "exp": 15,
+    "level": 4,
+    "stage_times": [
+        90,
+        150,
+        200,
+        100
+    ],
+    "wither_time": 4000,
+    "pest_chance": 0.12,
+    "water_chance": 0.3,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "fsm/crops/apple/seed.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "fsm/crops/apple/sprout.png"
+        },
+        "growing": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "fsm/crops/apple/growing.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "fsm/crops/apple/ripe.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "fsm/crops/apple/withered.png"
+        }
+    },
+    "social": {
+        "steal_percent": 20,
+        "steals_per_neighbor": 3,
+        "waters_per_neighbor": 5,
+        "water_exp": 6,
+        "remove_pest_exp": 4
+    },
+    "products": [
+        {
+            "code": "apple",
+            "name": {
+                "en": "Apple",
+                "ru": "Яблоко"
+            },
+            "yield": [
+                4,
+                7
+            ],
+            "sell_silver": 55
+        }
+    ]
+}

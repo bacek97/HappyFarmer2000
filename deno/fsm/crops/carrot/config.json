@@ -1,0 +1,73 @@
+{
+    "code": "carrot",
+    "name": {
+        "en": "Carrot",
+        "ru": "Морковь"
+    },
+    "description": {
+        "en": "Orange root vegetable",
+        "ru": "Оранжевый корнеплод"
+    },
+    "buy_silver": 10,
+    "exp": 7,
+    "level": 2,
+    "stage_times": [
+        45,
+        90,
+        60
+    ],
+    "wither_time": 2000,
+    "pest_chance": 0.08,
+    "water_chance": 0.35,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "/images/crops/carrot/seed.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "/images/crops/carrot/sprout.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "/images/crops/carrot/ripe.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "/images/crops/carrot/withered.png"
+        }
+    },
+    "social": {
+        "steal_percent": 15,
+        "steals_per_neighbor": 4,
+        "waters_per_neighbor": 5,
+        "water_exp": 4,
+        "remove_pest_exp": 2
+    },
+    "products": [
+        {
+            "code": "carrot",
+            "name": {
+                "en": "Carrot",
+                "ru": "Морковь"
+            },
+            "yield": [
+                3,
+                6
+            ],
+            "sell_silver": 25
+        }
+    ]
+}
