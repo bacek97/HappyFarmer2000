@@ -287,14 +287,12 @@
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #F5DEB3, #DEB887);
-            border: 4px solid #8B4513;
-            border-radius: 16px;
-            padding: 20px;
-            max-width: 400px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            background: #f0f0f0;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 95%;
+            max-height: 85vh;
+            overflow: hidden;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
@@ -302,65 +300,228 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #8B4513;
+            padding: 12px 16px;
+            background: #4a4a4a;
+            color: white;
         }
 
         .modal-title {
-            font-size: 20px;
-            color: #5D4037;
+            font-size: 18px;
             font-weight: bold;
         }
 
         .modal-close {
-            background: #c62828;
+            background: none;
             border: none;
             color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
+            font-size: 24px;
             cursor: pointer;
-            font-size: 18px;
+            opacity: 0.8;
         }
 
+        .modal-close:hover {
+            opacity: 1;
+        }
+
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            max-height: calc(85vh - 100px);
+            background: #e8e8e8;
+        }
+
+        .modal-footer {
+            padding: 12px 16px;
+            background: #d0d0d0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #bbb;
+        }
+
+        .modal-footer .total-price {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .modal-footer .btn-action {
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal-footer .btn-action:hover {
+            background: linear-gradient(135deg, #66BB6A, #43A047);
+        }
+
+        /* Item grid */
         .shop-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
         }
 
         .shop-item {
-            background: linear-gradient(135deg, #FFF8E1, #FFECB3);
-            border: 2px solid #8B4513;
+            background: white;
+            border: 2px solid #ddd;
             border-radius: 10px;
-            padding: 10px;
+            padding: 12px 8px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
         }
 
         .shop-item:hover {
-            transform: scale(1.05);
             border-color: #4CAF50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .shop-item-icon {
-            font-size: 32px;
-            margin-bottom: 5px;
+            font-size: 40px;
+            margin-bottom: 6px;
+        }
+
+        .shop-item-icon img {
+            width: 50px;
+            height: auto;
         }
 
         .shop-item-name {
             font-size: 12px;
-            color: #5D4037;
+            color: #333;
             font-weight: bold;
+            margin-bottom: 4px;
         }
 
         .shop-item-price {
             font-size: 11px;
             color: #FF9800;
             font-weight: bold;
-            margin-top: 4px;
+        }
+
+        .shop-item-qty {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #4CAF50;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        /* Quantity selector */
+        .qty-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .qty-selector button {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 50%;
+            background: #4a4a4a;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .qty-selector button:hover {
+            background: #666;
+        }
+
+        .qty-selector input {
+            width: 40px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        /* Submodal (confirmation dialog) */
+        .submodal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .submodal.active {
+            display: flex;
+        }
+
+        .submodal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .submodal-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .submodal-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .submodal-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .submodal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .submodal-buttons button {
+            padding: 10px 24px;
+            border: 2px solid #4a90d9;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .submodal-buttons .btn-ok {
+            background: #4a90d9;
+            color: white;
+        }
+
+        .submodal-buttons .btn-cancel {
+            background: white;
+            color: #4a90d9;
         }
 
         /* Exp Bar */
@@ -463,10 +624,31 @@
     <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="modal-title"></h3>
+                <span class="modal-title" id="modal-title"></span>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
-            <div id="modal-body"></div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer" style="display:none">
+                <div class="total-price">
+                    <span>Цена:</span>
+                    <span>🪙</span>
+                    <span id="modal-total">0</span>
+                </div>
+                <button class="btn-action" id="modal-action-btn">Продать всё</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submodal (confirmation) -->
+    <div class="submodal" id="submodal">
+        <div class="submodal-content">
+            <div class="submodal-icon">ℹ️</div>
+            <div class="submodal-title" id="submodal-title">Подтверждение</div>
+            <div class="submodal-text" id="submodal-text">Вы уверены?</div>
+            <div class="submodal-buttons">
+                <button class="btn-ok" id="submodal-ok">OK</button>
+                <button class="btn-cancel" onclick="closeSubmodal()">Отмена</button>
+            </div>
         </div>
     </div>
 
@@ -923,66 +1105,180 @@
         async function showModal(type) {
             const cfg = await api(`/api/configs/ui/${type}`);
             document.getElementById('modal-title').textContent = text(cfg?.name) || type;
+            document.getElementById('modal-footer').style.display = 'none';
 
             if (type === 'shop') {
-                // Shop: buy seeds
+                // Shop: buy seeds with quantity selector
                 const crops = await api('/api/configs/crops');
-                let html = '<h4 style="margin:0 0 10px;color:#5D4037">Семена</h4><div class="shop-grid">';
+                let html = '<div class="shop-grid">';
                 for (const [code, c] of Object.entries(crops || {})) {
                     const seedImg = c.stages?.seed?.image;
-                    const iconHtml = seedImg ? `<img src="../deno/${seedImg}" style="width:40px;height:auto;">` : '🌱';
+                    const iconHtml = seedImg ? `<img src="../deno/${seedImg}">` : '🌱';
                     const owned = inventory[`seed_${code}`] || 0;
-                    html += `<div class="shop-item" onclick="buySeed('${code}', ${c.buy_silver})">
+                    const isFree = c.buy_silver === 0;
+                    html += `<div class="shop-item">
+                        ${owned > 0 ? `<span class="shop-item-qty">${owned}</span>` : ''}
                         <div class="shop-item-icon">${iconHtml}</div>
                         <div class="shop-item-name">${text(c.name)}</div>
-                        <div class="shop-item-price">${c.buy_silver} 🪙</div>
-                        <div style="font-size:10px;color:#666">Есть: ${owned}</div>
+                        <div class="shop-item-price">${isFree ? 'Бесплатно' : c.buy_silver + ' 🪙'}</div>
+                        <div class="qty-selector">
+                            <button onclick="changeQty('${code}', -1)">−</button>
+                            <input type="number" id="qty_${code}" value="1" min="1" max="99" readonly>
+                            <button onclick="changeQty('${code}', 1)">+</button>
+                        </div>
+                        <button onclick="buySeeds('${code}', ${c.buy_silver})" style="margin-top:6px;width:100%;padding:6px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer">
+                            Купить
+                        </button>
                     </div>`;
                 }
                 html += '</div>';
                 document.getElementById('modal-body').innerHTML = html;
 
             } else if (type === 'warehouse') {
-                // Warehouse: show items with sell button
+                // Warehouse: show items with total and sell all
                 const crops = await api('/api/configs/crops');
-                const items = Object.entries(inventory).filter(([k]) => k.startsWith('item_'));
+                const items = Object.entries(inventory).filter(([k, v]) => k.startsWith('item_') && v > 0);
 
                 if (items.length === 0) {
-                    document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center">Склад пуст</p>';
+                    document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center;padding:40px">Склад пуст</p>';
                 } else {
                     let html = '<div class="shop-grid">';
+                    let totalValue = 0;
+
                     for (const [key, qty] of items) {
                         const code = key.replace('item_', '');
                         const cropCfg = crops?.[code];
                         const ripeImg = cropCfg?.stages?.ripe?.image;
-                        const iconHtml = ripeImg ? `<img src="../deno/${ripeImg}" style="width:40px;height:auto;">` : '📦';
-                        const sellPrice = cropCfg?.sell_silver || 10;
+                        const iconHtml = ripeImg ? `<img src="../deno/${ripeImg}">` : '📦';
+                        const sellPrice = cropCfg?.sell_silver || cropCfg?.products?.[0]?.sell_silver || 10;
+                        totalValue += sellPrice * qty;
+
                         html += `<div class="shop-item">
+                            <span class="shop-item-qty">${qty}</span>
                             <div class="shop-item-icon">${iconHtml}</div>
                             <div class="shop-item-name">${text(cropCfg?.name) || code}</div>
-                            <div style="font-size:12px">${qty} шт</div>
-                            <button onclick="sellItem('${code}', 1, ${sellPrice})" style="margin-top:5px;padding:4px 8px;cursor:pointer">
-                                Продать 1 за ${sellPrice}🪙
+                            <div class="shop-item-price">${sellPrice} 🪙 / шт</div>
+                            <div class="qty-selector">
+                                <button onclick="changeSellQty('${code}', -1, ${qty})">−</button>
+                                <input type="number" id="sell_${code}" value="${qty}" min="1" max="${qty}" readonly>
+                                <button onclick="changeSellQty('${code}', 1, ${qty})">+</button>
+                            </div>
+                            <button onclick="sellItems('${code}', ${sellPrice})" style="margin-top:6px;width:100%;padding:6px;background:#FF9800;color:white;border:none;border-radius:4px;cursor:pointer">
+                                Продать
                             </button>
                         </div>`;
                     }
                     html += '</div>';
                     document.getElementById('modal-body').innerHTML = html;
+
+                    // Show footer with total and sell all button
+                    document.getElementById('modal-footer').style.display = 'flex';
+                    document.getElementById('modal-total').textContent = totalValue.toLocaleString();
+                    document.getElementById('modal-action-btn').textContent = 'Продать всё';
+                    document.getElementById('modal-action-btn').onclick = () => confirmSellAll(totalValue);
                 }
 
             } else if (type === 'friends') {
-                document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center">Друзья скоро появятся!</p>';
+                document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center;padding:40px">Друзья скоро появятся!</p>';
 
             } else if (type === 'settings') {
                 document.getElementById('modal-body').innerHTML = `
-                    <p>Язык: Русский</p>
-                    <p>Звуки: Вкл</p>
+                    <div style="padding:20px">
+                        <p><b>Язык:</b> Русский</p>
+                        <p><b>Звуки:</b> Вкл</p>
+                    </div>
                 `;
             } else {
-                document.getElementById('modal-body').innerHTML = `<p>${text(cfg?.description) || ''}</p>`;
+                document.getElementById('modal-body').innerHTML = `<p style="padding:20px">${text(cfg?.description) || ''}</p>`;
             }
             document.getElementById('modal').classList.add('active');
         }
+
+        // Quantity helpers
+        function changeQty(code, delta) {
+            const input = document.getElementById(`qty_${code}`);
+            const newVal = Math.max(1, Math.min(99, parseInt(input.value) + delta));
+            input.value = newVal;
+        }
+
+        function changeSellQty(code, delta, max) {
+            const input = document.getElementById(`sell_${code}`);
+            const newVal = Math.max(1, Math.min(max, parseInt(input.value) + delta));
+            input.value = newVal;
+        }
+
+        // Buy seeds with quantity
+        async function buySeeds(cropCode, pricePerUnit) {
+            const qty = parseInt(document.getElementById(`qty_${cropCode}`)?.value || 1);
+            const totalPrice = pricePerUnit * qty;
+
+            if (totalPrice > 0 && (inventory.silver || 0) < totalPrice) {
+                alert('Недостаточно монет!');
+                return;
+            }
+
+            if (totalPrice > 0) {
+                await modifyStat('silver', -totalPrice);
+            }
+            await modifyStat(`seed_${cropCode}`, qty);
+            updateResourcesUI();
+            showModal('shop'); // Refresh
+        }
+
+        // Sell items with quantity
+        async function sellItems(itemCode, pricePerUnit) {
+            const qty = parseInt(document.getElementById(`sell_${itemCode}`)?.value || 1);
+            const key = `item_${itemCode}`;
+
+            if ((inventory[key] || 0) < qty) {
+                alert('Недостаточно товара!');
+                return;
+            }
+
+            await modifyStat(key, -qty);
+            await modifyStat('silver', pricePerUnit * qty);
+            updateResourcesUI();
+            showModal('warehouse'); // Refresh
+        }
+
+        // Confirm sell all
+        function confirmSellAll(totalValue) {
+            document.getElementById('submodal-title').textContent = 'Продать товары';
+            document.getElementById('submodal-text').textContent = `Вы уверены, что хотите продать все товары со склада за ${totalValue.toLocaleString()} 🪙?`;
+            document.getElementById('submodal-ok').onclick = async () => {
+                await sellAllItems();
+                closeSubmodal();
+            };
+            document.getElementById('submodal').classList.add('active');
+        }
+
+        async function sellAllItems() {
+            const crops = await api('/api/configs/crops');
+            const items = Object.entries(inventory).filter(([k, v]) => k.startsWith('item_') && v > 0);
+
+            for (const [key, qty] of items) {
+                const code = key.replace('item_', '');
+                const cropCfg = crops?.[code];
+                const sellPrice = cropCfg?.sell_silver || cropCfg?.products?.[0]?.sell_silver || 10;
+
+                await modifyStat(key, -qty);
+                await modifyStat('silver', sellPrice * qty);
+            }
+
+            updateResourcesUI();
+            showModal('warehouse');
+        }
+
+        function closeSubmodal() {
+            document.getElementById('submodal').classList.remove('active');
+        }
+
+        window.changeQty = changeQty;
+        window.changeSellQty = changeSellQty;
+        window.buySeeds = buySeeds;
+        window.sellItems = sellItems;
+        window.confirmSellAll = confirmSellAll;
+        window.closeSubmodal = closeSubmodal;
 
         // Buy seed
         async function buySeed(cropCode, price) {
