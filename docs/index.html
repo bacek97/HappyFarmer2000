@@ -118,31 +118,108 @@
             border-color: #FFD700;
         }
 
-        .action-buttons {
+        /* Right sidebar buttons (vertical) */
+        .right-sidebar {
+            position: fixed;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
         }
 
-        .action-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-            border: 3px solid #8B4513;
-            background: linear-gradient(135deg, #A0522D, #8B4513);
+        .sidebar-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             cursor: pointer;
             transition: transform 0.2s;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
         }
 
-        .action-btn:hover {
+        .sidebar-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .sidebar-btn.cyan {
+            background: linear-gradient(135deg, #4DD0E1, #00ACC1);
+        }
+
+        .sidebar-btn.green {
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+        }
+
+        .sidebar-btn.orange {
+            background: linear-gradient(135deg, #FFB74D, #FF9800);
+        }
+
+        .sidebar-btn.red {
+            background: linear-gradient(135deg, #E57373, #F44336);
+        }
+
+        .sidebar-btn.yellow {
+            background: linear-gradient(135deg, #FFF176, #FFEB3B);
+        }
+
+        /* Bottom toolbar with labels */
+        .bottom-toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #f5f5f5, #e0e0e0);
+            padding: 8px 10px 12px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+        }
+
+        .toolbar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .toolbar-item:hover {
             transform: translateY(-3px);
         }
 
-        /* Farm Grid - Isometric via positioning (no CSS rotation) */
+        .toolbar-item .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #C5E1A5, #8BC34A);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .toolbar-item .icon.active {
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+            border-color: #388E3C;
+        }
+
+        .toolbar-item .label {
+            font-size: 11px;
+            color: #555;
+            font-weight: 500;
+        }
+
         .farm-container {
             position: absolute;
             bottom: 15%;
@@ -199,42 +276,56 @@
         }
 
         /* Toolbar */
-        .toolbar {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, rgba(139, 69, 19, 0.95), rgba(101, 67, 33, 0.95));
-            border: 3px solid #8B4513;
-            border-radius: 16px;
-            padding: 10px 20px;
+        /* Bottom toolbar with labels */
+        .bottom-toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #f5f5f5, #e0e0e0);
+            padding: 8px 10px 12px;
             display: flex;
-            gap: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            /* z-index: 100; */
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+            z-index: 100;
         }
 
-        .tool {
-            width: 55px;
-            height: 55px;
-            background: linear-gradient(135deg, #D2B48C, #C4A77D);
-            border: 3px solid #8B4513;
-            border-radius: 12px;
+        .toolbar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .toolbar-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .toolbar-item .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #C5E1A5, #8BC34A);
+            border: 3px solid rgba(255, 255, 255, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
-            cursor: pointer;
-            transition: all 0.2s;
+            font-size: 26px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
         }
 
-        .tool:hover {
-            transform: translateY(-5px);
+        .toolbar-item .icon.active {
+            background: linear-gradient(135deg, #81C784, #4CAF50);
+            border-color: #388E3C;
         }
 
-        .tool.active {
-            background: linear-gradient(135deg, #4CAF50, #388E3C);
-            border-color: #2E7D32;
+        .toolbar-item .label {
+            font-size: 11px;
+            color: #555;
+            font-weight: 500;
         }
 
         /* Map Objects (Factories, Animals, Buildings) */
@@ -601,22 +692,34 @@
                 <div class="resource silver"><span>🪙</span><span id="silver">1,250</span></div>
                 <div class="resource gold"><span>💎</span><span id="gold">50</span></div>
             </div>
-
-            <div class="action-buttons">
-                <div class="action-btn" onclick="showModal('shop')">🛒</div>
-                <div class="action-btn" onclick="showModal('warehouse')">📦</div>
-                <div class="action-btn" onclick="showModal('friends')">👥</div>
-                <div class="action-btn" onclick="showModal('settings')">⚙️</div>
-            </div>
         </div>
 
-        <!-- Toolbar -->
-        <div class="toolbar">
-            <div class="tool active" data-tool="plant">🌱</div>
-            <div class="tool" data-tool="water">💧</div>
-            <div class="tool" data-tool="harvest">🌾</div>
-            <div class="tool" data-tool="fertilize">💩</div>
-            <div class="tool" data-tool="remove">🗑️</div>
+        <!-- Right Sidebar (vertical buttons) -->
+        <div class="right-sidebar">
+            <div class="sidebar-btn cyan" onclick="showModal('settings')">⚙️</div>
+            <div class="sidebar-btn green" onclick="showModal('friends')">👥</div>
+            <div class="sidebar-btn orange" onclick="showModal('achievements')">🏆</div>
+            <div class="sidebar-btn red" onclick="showModal('notifications')">🔔</div>
+        </div>
+
+        <!-- Bottom Toolbar -->
+        <div class="bottom-toolbar">
+            <div class="toolbar-item" onclick="showModal('warehouse')">
+                <div class="icon">👜</div>
+                <span class="label">Сумка</span>
+            </div>
+            <div class="toolbar-item" data-tool="harvest">
+                <div class="icon">🌾</div>
+                <span class="label">Урожай</span>
+            </div>
+            <div class="toolbar-item" onclick="showModal('shop')">
+                <div class="icon">🛒</div>
+                <span class="label">Магазин</span>
+            </div>
+            <div class="toolbar-item" onclick="showModal('friends')">
+                <div class="icon">👨‍🌾</div>
+                <span class="label">Фермеры</span>
+            </div>
         </div>
     </div>
 
@@ -1012,23 +1115,45 @@
         async function showCropSelector(plotId) {
             const crops = await api('/api/configs/crops');
             const plotCfg = await api('/api/configs/plots/plot');
-            document.getElementById('modal-title').textContent = text(plotCfg?.ui?.labels?.select_crop) || 'Select Crop';
-            document.getElementById('modal-body').innerHTML = `
-                <div class="shop-grid">
-                    ${Object.entries(crops || {}).map(([code, c]) => {
-                const seedImg = c.stages?.seed?.image;
-                const iconHtml = seedImg
-                    ? `<img src="../deno/${seedImg}" style="width:40px;height:auto;">`
-                    : '🌱';
-                return `
-                        <div class="shop-item" onclick="plantCrop(${plotId}, '${code}')">
-                            <div class="shop-item-icon">${iconHtml}</div>
-                            <div class="shop-item-name">${text(c.name)}</div>
-                            <div class="shop-item-price">${c.buy_silver} 🪙</div>
-                        </div>
-                    `}).join('')}
-                </div>
-            `;
+            document.getElementById('modal-title').textContent = text(plotCfg?.ui?.labels?.select_crop) || 'Выберите семена';
+            document.getElementById('modal-footer').style.display = 'none';
+
+            // Filter only crops that user has seeds for
+            const availableCrops = Object.entries(crops || {}).filter(([code]) => {
+                const seedCount = inventory[`seed_${code}`] || 0;
+                return seedCount > 0;
+            });
+
+            if (availableCrops.length === 0) {
+                document.getElementById('modal-body').innerHTML = `
+                    <p style="color:#888;text-align:center;padding:30px">
+                        У вас нет семян!<br><br>
+                        <button onclick="closeModal(); showModal('shop')" style="padding:10px 20px;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
+                            Перейти в магазин
+                        </button>
+                    </p>
+                `;
+            } else {
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="shop-grid">
+                        ${availableCrops.map(([code, c]) => {
+                    const seedImg = c.stages?.seed?.image;
+                    const iconHtml = seedImg
+                        ? `<img src="../deno/${seedImg}">`
+                        : '🌱';
+                    const seedCount = inventory[`seed_${code}`] || 0;
+                    return `
+                                <div class="shop-item" onclick="plantCrop(${plotId}, '${code}')">
+                                    <span class="shop-item-qty">${seedCount}</span>
+                                    <div class="shop-item-icon">${iconHtml}</div>
+                                    <div class="shop-item-name">${text(c.name)}</div>
+                                    <div class="shop-item-price">${seedCount} семян</div>
+                                </div>
+                            `;
+                }).join('')}
+                    </div>
+                `;
+            }
             document.getElementById('modal').classList.add('active');
         }
 
