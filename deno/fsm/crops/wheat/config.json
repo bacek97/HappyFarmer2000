@@ -8,7 +8,7 @@
         "en": "Golden grain for bread",
         "ru": "Золотое зерно для хлеба"
     },
-    "buy_silver": 5,
+    "buy_silver": 0,
     "exp": 5,
     "level": 1,
     "stage_times": [

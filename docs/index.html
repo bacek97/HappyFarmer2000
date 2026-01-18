@@ -492,6 +492,79 @@
 
         function text(obj) { return obj?.[LANG] || obj?.en || ''; }
 
+        // ===== Hasura GraphQL =====
+        const HASURA_URL = 'https://happy-farmer-2000.hasura.app/v1/graphql';
+
+        const initData = tg?.initData || '';
+        let inventory = {}; // {seed_tomato: 5, item_wheat: 10, silver: 1000}
+        let userId = tg?.initDataUnsafe?.user?.id || 0;
+
+        async function gql(query, variables = {}) {
+            try {
+                const res = await fetch(HASURA_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': initData
+                    },
+                    body: JSON.stringify({ query, variables })
+                });
+                const json = await res.json();
+                if (json.errors) {
+                    console.error('GraphQL errors:', json.errors);
+                    throw new Error(json.errors[0]?.message || 'GraphQL error');
+                }
+                return json.data;
+            } catch (e) {
+                console.error('GQL Error:', e);
+                return null;
+            }
+        }
+
+        // Load user inventory from user_stats
+        async function loadInventory() {
+            const data = await gql(`
+                query {
+                    user_stats {
+                        key
+                        value
+                    }
+                }
+            `);
+            inventory = {};
+            (data?.user_stats || []).forEach(s => {
+                inventory[s.key] = s.value;
+            });
+            updateResourcesUI();
+            return inventory;
+        }
+
+        // Update single stat in DB
+        async function updateStat(key, value) {
+            await gql(`
+                mutation($key: String!, $value: Int!) {
+                    insert_user_stats_one(
+                        object: {key: $key, value: $value}
+                        on_conflict: {constraint: user_stats_pkey, update_columns: [value, updated_at]}
+                    ) { key }
+                }
+            `, { key, value });
+            inventory[key] = value;
+        }
+
+        // Add/subtract from stat
+        async function modifyStat(key, delta) {
+            const current = inventory[key] || 0;
+            const newVal = Math.max(0, current + delta);
+            await updateStat(key, newVal);
+            return newVal;
+        }
+
+        function updateResourcesUI() {
+            document.getElementById('silver').textContent = (inventory.silver || 0).toLocaleString();
+            document.getElementById('gold').textContent = (inventory.gold || 0).toLocaleString();
+        }
+
         // Map panning functionality
         let isPanning = false, startX = 0, startY = 0, panX = 0, panY = 0;
 
@@ -554,6 +627,9 @@
             configs = await api('/api/configs');
             const plotCfg = await api('/api/configs/plots/plot');
             document.getElementById('level-text').textContent = `Level 5`;
+
+            // Load user inventory from database
+            await loadInventory();
 
             // Load map objects (factories) FIRST so they appear behind plots
             await loadMapObjects();
@@ -649,13 +725,50 @@
 
         async function showFactoryModal(code, cfg) {
             document.getElementById('modal-title').textContent = text(cfg.name);
+            const crops = await api('/api/configs/crops');
+
             let html = `<p style="margin-bottom:15px;color:#5D4037">${text(cfg.description)}</p>`;
             html += '<div class="shop-grid">';
+
             for (const recipe of cfg.recipes || []) {
-                html += `<div class="shop-item" onclick="startProduction('${code}','${recipe.code}')">
-                    <div class="shop-item-icon">🧃</div>
+                // Check ingredients
+                let ingredientsHtml = '';
+                let canProduce = true;
+
+                for (const input of recipe.inputs || []) {
+                    const itemKey = `item_${input.item}`;
+                    const have = inventory[itemKey] || 0;
+                    const need = input.count;
+                    const enough = have >= need;
+                    if (!enough) canProduce = false;
+
+                    const cropCfg = crops?.[input.item];
+                    const itemName = text(cropCfg?.name) || input.item;
+                    const color = enough ? '#4CAF50' : '#F44336';
+                    ingredientsHtml += `<div style="font-size:11px;color:${color}">${itemName}: ${have}/${need}</div>`;
+                }
+
+                const btnStyle = canProduce
+                    ? 'background:#4CAF50;color:white;cursor:pointer'
+                    : 'background:#ccc;color:#666;cursor:not-allowed';
+                const onclick = canProduce
+                    ? `startProduction('${code}','${recipe.code}')`
+                    : '';
+
+                // Get product icon
+                const product = recipe.products?.[0];
+                const productIcon = product?.code?.includes('juice') ? '🧃' : product?.code?.includes('chips') ? '🍟' : '📦';
+
+                html += `<div class="shop-item" ${onclick ? `onclick="${onclick}"` : ''}>
+                    <div class="shop-item-icon">${productIcon}</div>
                     <div class="shop-item-name">${text(recipe.name)}</div>
-                    <div class="shop-item-price">${Math.floor(recipe.time / 60)}m</div>
+                    <div style="font-size:10px;color:#888">⏱ ${Math.floor(recipe.time / 60)}мин</div>
+                    <div style="margin-top:5px;border-top:1px solid #eee;padding-top:5px">
+                        ${ingredientsHtml}
+                    </div>
+                    <div style="margin-top:5px;padding:3px 6px;border-radius:4px;${btnStyle}">
+                        ${canProduce ? '▶ Произвести' : '✗ Нет ингредиентов'}
+                    </div>
                 </div>`;
             }
             html += '</div>';
@@ -663,10 +776,47 @@
             document.getElementById('modal').classList.add('active');
         }
 
+        // Store current factory configs for startProduction
+        let factoryConfigs = {};
+
         async function startProduction(factoryCode, recipeCode) {
+            // Get factory config
+            const cfg = await api(`/api/configs/factories/${factoryCode}`);
+            const recipe = cfg?.recipes?.find(r => r.code === recipeCode);
+            if (!recipe) {
+                alert('Рецепт не найден!');
+                return;
+            }
+
+            // Check and deduct ingredients
+            for (const input of recipe.inputs || []) {
+                const itemKey = `item_${input.item}`;
+                const have = inventory[itemKey] || 0;
+                if (have < input.count) {
+                    alert(`Недостаточно ${input.item}!`);
+                    return;
+                }
+            }
+
+            // Deduct ingredients
+            for (const input of recipe.inputs || []) {
+                await modifyStat(`item_${input.item}`, -input.count);
+            }
+
             closeModal();
-            console.log(`Start: ${factoryCode} - ${recipeCode}`);
+
+            // Add products after production time (simplified - instant for demo)
+            for (const product of recipe.products || []) {
+                await modifyStat(`item_${product.code}`, product.count);
+            }
+
+            // Add experience
+            await modifyStat('exp', recipe.exp || 10);
+
+            alert(`${text(recipe.name)} готов!`);
         }
+
+        window.startProduction = startProduction;
 
         async function onPlotClick(id) {
             const plot = plots[id];
@@ -701,7 +851,18 @@
         }
 
         async function plantCrop(plotId, cropCode) {
+            // Check if user has seeds
+            const seedKey = `seed_${cropCode}`;
+            if ((inventory[seedKey] || 0) < 1) {
+                alert('Недостаточно семян! Купите в магазине.');
+                return;
+            }
+
             closeModal();
+
+            // Use seed from inventory
+            await modifyStat(seedKey, -1);
+
             const cropCfg = await api(`/api/configs/crops/${cropCode}`);
             const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
             plots[plotId] = { state: 'planted', crop: cropCode, stage: 'seed', config: cropCfg };
@@ -725,18 +886,33 @@
         }
 
         async function harvestCrop(plotId) {
+            const plot = plots[plotId];
+            const cropCode = plot?.crop;
+            const cropCfg = plot?.config;
+
             const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
             const plotCfg = await api('/api/configs/plots/plot');
             const emptyPlotImg = plotCfg?.stages?.empty?.image;
 
+            // Calculate yield (random between min and max)
+            const yieldRange = cropCfg?.yield || [1, 3];
+            const harvestQty = Math.floor(Math.random() * (yieldRange[1] - yieldRange[0] + 1)) + yieldRange[0];
+
+            // Add to warehouse inventory
+            const itemKey = `item_${cropCode}`;
+            await modifyStat(itemKey, harvestQty);
+
+            // Add experience
+            const exp = cropCfg?.exp || 5;
+            await modifyStat('exp', exp);
+
             // Show harvest animation
-            plotEl.innerHTML = '<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+5 🍎</div>';
+            plotEl.innerHTML = `<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+${harvestQty} 🍎</div>`;
 
             setTimeout(() => {
                 plotEl.innerHTML = '';
                 plotEl.classList.remove('planted');
                 plotEl.classList.add('empty');
-                // Restore plot background texture
                 if (emptyPlotImg) {
                     plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
                 }
@@ -747,19 +923,94 @@
         async function showModal(type) {
             const cfg = await api(`/api/configs/ui/${type}`);
             document.getElementById('modal-title').textContent = text(cfg?.name) || type;
+
             if (type === 'shop') {
+                // Shop: buy seeds
                 const crops = await api('/api/configs/crops');
-                let html = '<div class="shop-grid">';
+                let html = '<h4 style="margin:0 0 10px;color:#5D4037">Семена</h4><div class="shop-grid">';
                 for (const [code, c] of Object.entries(crops || {})) {
-                    html += `<div class="shop-item"><div class="shop-item-icon">🌱</div><div class="shop-item-name">${text(c.name)}</div><div class="shop-item-price">${c.buy_silver} 🪙</div></div>`;
+                    const seedImg = c.stages?.seed?.image;
+                    const iconHtml = seedImg ? `<img src="../deno/${seedImg}" style="width:40px;height:auto;">` : '🌱';
+                    const owned = inventory[`seed_${code}`] || 0;
+                    html += `<div class="shop-item" onclick="buySeed('${code}', ${c.buy_silver})">
+                        <div class="shop-item-icon">${iconHtml}</div>
+                        <div class="shop-item-name">${text(c.name)}</div>
+                        <div class="shop-item-price">${c.buy_silver} 🪙</div>
+                        <div style="font-size:10px;color:#666">Есть: ${owned}</div>
+                    </div>`;
                 }
                 html += '</div>';
                 document.getElementById('modal-body').innerHTML = html;
+
+            } else if (type === 'warehouse') {
+                // Warehouse: show items with sell button
+                const crops = await api('/api/configs/crops');
+                const items = Object.entries(inventory).filter(([k]) => k.startsWith('item_'));
+
+                if (items.length === 0) {
+                    document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center">Склад пуст</p>';
+                } else {
+                    let html = '<div class="shop-grid">';
+                    for (const [key, qty] of items) {
+                        const code = key.replace('item_', '');
+                        const cropCfg = crops?.[code];
+                        const ripeImg = cropCfg?.stages?.ripe?.image;
+                        const iconHtml = ripeImg ? `<img src="../deno/${ripeImg}" style="width:40px;height:auto;">` : '📦';
+                        const sellPrice = cropCfg?.sell_silver || 10;
+                        html += `<div class="shop-item">
+                            <div class="shop-item-icon">${iconHtml}</div>
+                            <div class="shop-item-name">${text(cropCfg?.name) || code}</div>
+                            <div style="font-size:12px">${qty} шт</div>
+                            <button onclick="sellItem('${code}', 1, ${sellPrice})" style="margin-top:5px;padding:4px 8px;cursor:pointer">
+                                Продать 1 за ${sellPrice}🪙
+                            </button>
+                        </div>`;
+                    }
+                    html += '</div>';
+                    document.getElementById('modal-body').innerHTML = html;
+                }
+
+            } else if (type === 'friends') {
+                document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center">Друзья скоро появятся!</p>';
+
+            } else if (type === 'settings') {
+                document.getElementById('modal-body').innerHTML = `
+                    <p>Язык: Русский</p>
+                    <p>Звуки: Вкл</p>
+                `;
             } else {
                 document.getElementById('modal-body').innerHTML = `<p>${text(cfg?.description) || ''}</p>`;
             }
             document.getElementById('modal').classList.add('active');
         }
+
+        // Buy seed
+        async function buySeed(cropCode, price) {
+            if ((inventory.silver || 0) < price) {
+                alert('Недостаточно монет!');
+                return;
+            }
+            await modifyStat('silver', -price);
+            await modifyStat(`seed_${cropCode}`, 1);
+            updateResourcesUI();
+            showModal('shop'); // Refresh
+        }
+
+        // Sell item from warehouse
+        async function sellItem(itemCode, qty, pricePerUnit) {
+            const key = `item_${itemCode}`;
+            if ((inventory[key] || 0) < qty) {
+                alert('Недостаточно товара!');
+                return;
+            }
+            await modifyStat(key, -qty);
+            await modifyStat('silver', pricePerUnit * qty);
+            updateResourcesUI();
+            showModal('warehouse'); // Refresh
+        }
+
+        window.buySeed = buySeed;
+        window.sellItem = sellItem;
 
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
