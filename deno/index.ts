@@ -485,11 +485,11 @@ async function handlePlantCrop(req: Request): Promise<Response> {
     }
 
     // Get crop config
-    console.log("[PLANT] Available crops:", Object.keys(configData.crops || {}));
-    const cropConfig = configData.crops?.[cropCode];
+    console.log("[PLANT] Available crops:", Object.keys(CONFIGS.crops || {}));
+    const cropConfig = CONFIGS.crops?.[cropCode];
     if (!cropConfig) {
       console.log("[PLANT] Crop not found:", cropCode);
-      return new Response(JSON.stringify({ error: "Unknown crop", available: Object.keys(configData.crops || {}) }), { status: 404, headers });
+      return new Response(JSON.stringify({ error: "Unknown crop", available: Object.keys(CONFIGS.crops || {}) }), { status: 404, headers });
     }
 
     console.log("[PLANT] Crop config found:", cropConfig.name);
@@ -664,7 +664,7 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
     const itemKey = `item_${itemCode}`;
 
     // Get crop config for exp and sell_silver
-    const cropConfig = configData.crops?.[itemCode];
+    const cropConfig = CONFIGS.crops?.[itemCode];
     const exp = cropConfig?.exp || 5;
     const sellSilver = cropConfig?.products?.[0]?.sell_silver || 10;
 
