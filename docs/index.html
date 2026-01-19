@@ -869,7 +869,7 @@
             console.log('[DB] Saving crop:', { plotId, cropCode, stage, plantedAt });
             const typeCode = `crop_${cropCode}`;
             const plantedAtStr = plantedAt.toString();
-            
+
             // First create the game object
             const data = await gql(`
                 mutation($typeCode: String!, $x: Int!) {
@@ -1256,10 +1256,17 @@
 
         async function onPlotClick(id) {
             const plot = plots[id];
-            if (currentTool === 'plant' && plot.state === 'empty') {
-                await showCropSelector(id);
-            } else if (currentTool === 'harvest' && plot.state === 'ready') {
+            console.log('[PLOT] Click on plot', id, 'state:', plot?.state, 'currentTool:', currentTool);
+
+            // Ready crop - always harvest on click
+            if (plot.state === 'ready') {
                 await harvestCrop(id);
+                return;
+            }
+
+            // Empty plot with plant tool - show crop selector
+            if (plot.state === 'empty') {
+                await showCropSelector(id);
             }
         }
 
