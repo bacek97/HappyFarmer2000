@@ -26,35 +26,35 @@
                 "en": "Seed",
                 "ru": "Семя"
             },
-            "image": "/images/crops/corn/seed.png"
+            "image": "fsm/crops/corn/plant020.png"
         },
         "sprout": {
             "messages": {
                 "en": "Sprout",
                 "ru": "Росток"
             },
-            "image": "/images/crops/corn/sprout.png"
+            "image": "fsm/crops/corn/plant022.png"
         },
         "growing": {
             "messages": {
                 "en": "Growing",
                 "ru": "Рост"
             },
-            "image": "/images/crops/corn/growing.png"
+            "image": "fsm/crops/corn/plant023.png"
         },
         "ripe": {
             "messages": {
                 "en": "Ripe",
                 "ru": "Созрело"
             },
-            "image": "/images/crops/corn/ripe.png"
+            "image": "fsm/crops/corn/plant024.png"
         },
         "withered": {
             "messages": {
                 "en": "Withered",
                 "ru": "Увяло"
             },
-            "image": "/images/crops/corn/withered.png"
+            "image": "fsm/crops/corn/plant.png"
         }
     },
     "social": {

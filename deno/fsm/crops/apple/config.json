@@ -26,21 +26,21 @@
                 "en": "Seed",
                 "ru": "Семя"
             },
-            "image": "fsm/crops/apple/seed.png"
+            "image": "fsm/crops/apple/plant080.png"
         },
         "sprout": {
             "messages": {
                 "en": "Sprout",
                 "ru": "Росток"
             },
-            "image": "fsm/crops/apple/sprout.png"
+            "image": "fsm/crops/apple/plant082.png"
         },
         "growing": {
             "messages": {
                 "en": "Growing",
                 "ru": "Рост"
             },
-            "image": "fsm/crops/apple/growing.png"
+            "image": "fsm/crops/apple/plant083.png"
         },
         "ripe": {
             "messages": {

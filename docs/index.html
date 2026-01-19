@@ -40,16 +40,37 @@
             background-size: 100% 100%;
         }
 
-        /* Top Bar */
-        .top-bar {
-            position: absolute;
+        /* Top Left Stats */
+        .top-left-stats {
+            position: fixed;
             top: 10px;
             left: 10px;
-            right: 10px;
             display: flex;
-            justify-content: space-between;
             align-items: flex-start;
-            /* z-index: 100; */
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .level-circle {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            border: 4px solid #81C784;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats-column {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
 
         .user-panel {
@@ -93,8 +114,13 @@
         }
 
         .resources {
+            position: fixed;
+            top: 70px;
+            left: 10px;
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 100;
         }
 
         .resource {
@@ -122,8 +148,7 @@
         .right-sidebar {
             position: fixed;
             right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 10px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -672,23 +697,10 @@
         </div>
 
         <!-- UI Layer (fixed to screen) -->
-        <!-- Top Bar -->
-        <div class="top-bar">
-            <div style="display: flex; flex-direction: column; gap: 5px;">
-                <div class="user-panel">
-                    <div class="avatar" id="avatar">?</div>
-                    <div class="user-info">
-                        <div class="username" id="username"></div>
-                        <div class="user-level" id="level-text"></div>
-                    </div>
-                </div>
-                <div class="exp-bar">
-                    <div class="exp-fill" id="exp-fill"></div>
-                    <div class="exp-text" id="exp-text">350 / 1000</div>
-                </div>
-            </div>
-
-            <div class="resources">
+        <!-- Top Left Stats -->
+        <div class="top-left-stats">
+            <div class="level-circle" id="level-circle">50</div>
+            <div class="stats-column">
                 <div class="resource silver"><span>🪙</span><span id="silver">1,250</span></div>
                 <div class="resource gold"><span>💎</span><span id="gold">50</span></div>
             </div>

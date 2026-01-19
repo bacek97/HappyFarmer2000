@@ -25,28 +25,28 @@
                 "en": "Seed",
                 "ru": "Семя"
             },
-            "image": "/images/crops/carrot/seed.png"
+            "image": "fsm/crops/carrot/plant010.png"
         },
         "sprout": {
             "messages": {
                 "en": "Sprout",
                 "ru": "Росток"
             },
-            "image": "/images/crops/carrot/sprout.png"
+            "image": "fsm/crops/carrot/plant013.png"
         },
         "ripe": {
             "messages": {
                 "en": "Ripe",
                 "ru": "Созрело"
             },
-            "image": "/images/crops/carrot/ripe.png"
+            "image": "fsm/crops/carrot/plant014.png"
         },
         "withered": {
             "messages": {
                 "en": "Withered",
                 "ru": "Увяло"
             },
-            "image": "/images/crops/carrot/withered.png"
+            "image": "fsm/crops/carrot/plant0ered.png"
         }
     },
     "social": {

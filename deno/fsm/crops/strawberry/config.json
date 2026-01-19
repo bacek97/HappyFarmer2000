@@ -26,35 +26,35 @@
                 "en": "Seed",
                 "ru": "Семя"
             },
-            "image": "/images/crops/strawberry/seed.png"
+            "image": "fsm/crops/strawberry/plant070.png"
         },
         "sprout": {
             "messages": {
                 "en": "Sprout",
                 "ru": "Росток"
             },
-            "image": "/images/crops/strawberry/sprout.png"
+            "image": "fsm/crops/strawberry/plant072.png"
         },
         "growing": {
             "messages": {
                 "en": "Growing",
                 "ru": "Рост"
             },
-            "image": "/images/crops/strawberry/growing.png"
+            "image": "fsm/crops/strawberry/plant073.png"
         },
         "ripe": {
             "messages": {
                 "en": "Ripe",
                 "ru": "Созрело"
             },
-            "image": "/images/crops/strawberry/ripe.png"
+            "image": "fsm/crops/strawberry/plant074.png"
         },
         "withered": {
             "messages": {
                 "en": "Withered",
                 "ru": "Увяло"
             },
-            "image": "/images/crops/strawberry/withered.png"
+            "image": "fsm/crops/strawberry/plant0.png"
         }
     },
     "social": {
