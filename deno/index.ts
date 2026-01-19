@@ -4,24 +4,29 @@
  * ========================================
  * 
  * 1. Endpoints MUST be defined in FSM files (deno/fsm/<FSM_NAME>/FSM.ts), NOT directly here
-  * 2. This file only handles:
- * - Auth(getHasuraClaims, handleAuth)
-  * - Config loading(scanConfigs, handleGetConfigs)
-    * - Telegram webhooks
-      * - Dynamic routing to FSM endpoints
-        * 
- * 3. FSM files(e.g.deno / fsm / crops / FSM.ts) contain:
- * - ENDPOINTS constant with paths
-* - Handler functions(handlePlant, handleHarvest, etc.)
-  * - State calculation logic
-    * - Checkpoint generation
-      * 
+ * 2. This file only handles:
+ *    - Auth (getHasuraClaims, handleAuth)
+ *    - Config loading (scanConfigs, handleGetConfigs)
+ *    - Telegram webhooks
+ *    - Dynamic routing to FSM endpoints
+ * 
+ * 3. FSM files (e.g. deno/fsm/crops/FSM.ts) contain:
+ *    - ENDPOINTS constant with paths
+ *    - Handler functions (handlePlant, handleHarvest, etc.)
+ *    - State calculation logic
+ *    - Checkpoint generation
+ * 
  * 4. Database tables:
- * - user_stats: ONLY for inventory(silver, item_ *, seed_ *)
-  * - game_objects: planted crops, factories, etc.
- * - game_object_params: object parameters(yield, stolen, etc.)
-  * - game_checkpoints: growth stages, wither times, events
-    * ========================================
+ *    - user_stats: ONLY for inventory (silver, item_*, seed_*)
+ *    - game_objects: planted crops, factories, etc.
+ *    - game_object_params: object parameters (yield, stolen, etc.)
+ *    - game_checkpoints: growth stages, wither times, events
+ * 
+ * 5. HASURA AUTH:
+ *    - NEVER use X-Hasura-Admin-Secret in Deno!
+ *    - Use SERVICE_USER_TOKEN env variable instead
+ *    - Pass initData from frontend for user authentication
+ * ========================================
  */
 
 const BOT_TOKEN = Deno.env.get("BOT_TOKEN") || "";
@@ -93,7 +98,7 @@ async function getHasuraClaims(authHeader: string | null) {
 
 // ===== HASURA GRAPHQL HELPER =====
 const HASURA_URL = Deno.env.get("HASURA_GRAPHQL_ENDPOINT") || "https://happy-farmer-2000.hasura.app/v1/graphql";
-const SERVICE_TOKEN = Deno.env.get("SERVICE_USER_TOKEN") || "";
+const SERVICE_USER_TOKEN = Deno.env.get("SERVICE_USER_TOKEN") || "";
 
 async function hasuraQuery(query: string, variables: Record<string, unknown> = {}, userId?: string) {
   console.log("[HASURA] Query:", query.slice(0, 100), "userId:", userId);
@@ -102,12 +107,18 @@ async function hasuraQuery(query: string, variables: Record<string, unknown> = {
     "Content-Type": "application/json",
   };
 
+  // Use Authorization header with SERVICE_USER_TOKEN (not X-Hasura-Admin-Secret!)
+  if (SERVICE_USER_TOKEN) {
+    headers["Authorization"] = SERVICE_USER_TOKEN;
+  }
+
+  // Set role and user-id for row-level security
   if (userId) {
     headers["X-Hasura-Role"] = "user";
     headers["X-Hasura-User-Id"] = userId;
-  } else if (SERVICE_TOKEN) {
-    headers["X-Hasura-Admin-Secret"] = SERVICE_TOKEN;
   }
+
+  console.log("[HASURA] Headers:", Object.keys(headers));
 
   const res = await fetch(HASURA_URL, {
     method: "POST",
