@@ -3,7 +3,7 @@
  * ARCHITECTURE RULES - DO NOT FORGET!
  * ========================================
  * 
- * 1. Endpoints MUST be defined in FSM files (deno/fsm/*/FSM.ts), NOT directly here
+ * 1. Endpoints MUST be defined in FSM files (deno/fsm/<FSM_NAME>/FSM.ts), NOT directly here
   * 2. This file only handles:
  * - Auth(getHasuraClaims, handleAuth)
   * - Config loading(scanConfigs, handleGetConfigs)
