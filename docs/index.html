@@ -979,7 +979,8 @@
                     crop: cropCode,
                     stage: currentStage,
                     config: cropCfg,
-                    plantedAt
+                    plantedAt,
+                    objectId: obj.id  // Important for harvest
                 };
 
                 // Update plot visual
@@ -1316,29 +1317,37 @@
         }
 
         async function plantCrop(plotId, cropCode) {
-            // Check if user has seeds
-            const seedKey = `seed_${cropCode}`;
-            if ((inventory[seedKey] || 0) < 1) {
-                alert('Недостаточно семян! Купите в магазине.');
+            closeModal();
+
+            // Call API to plant crop (handles seeds, checkpoints, etc.)
+            const response = await fetch(`${API_URL}/api/plant?plot_id=${plotId}&crop=${cropCode}`, {
+                headers: { 'Authorization': tg?.initData || '' }
+            });
+            const result = await response.json();
+
+            if (!result.success) {
+                alert(result.error || 'Ошибка посадки');
                 return;
             }
 
-            closeModal();
+            // Reload inventory
+            await loadInventory();
 
-            // Use seed from inventory
-            await modifyStat(seedKey, -1);
-
+            // Update UI
             const cropCfg = await api(`/api/configs/crops/${cropCode}`);
             const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            const plantedAt = Date.now();
-            plots[plotId] = { state: 'planted', crop: cropCode, stage: 'seed', config: cropCfg, plantedAt };
+            plots[plotId] = {
+                state: 'planted',
+                crop: cropCode,
+                stage: 'seed',
+                config: cropCfg,
+                objectId: result.objectId
+            };
             plotEl.classList.remove('empty');
             plotEl.classList.add('planted');
 
-            // Save to database
-            await savePlantedCrop(plotId, cropCode, 'seed', plantedAt);
-
             const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
+            const stageTimes = cropCfg?.stage_times || [30, 60, 90];
 
             function updatePlotImage(stage) {
                 const img = cropCfg?.stages?.[stage]?.image;
@@ -1348,38 +1357,52 @@
                 plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[stage]}</span>`;
             }
 
+            // Use stage_times from config (in seconds)
             updatePlotImage('seed');
-            setTimeout(() => updatePlotImage('sprout'), 3000);
-            setTimeout(() => updatePlotImage('growing'), 6000);
-            setTimeout(() => { updatePlotImage('ripe'); plots[plotId].state = 'ready'; }, 9000);
+            let elapsed = 0;
+            const stages = ['sprout', 'growing', 'ripe'];
+            for (let i = 0; i < stageTimes.length; i++) {
+                elapsed += stageTimes[i] * 1000;
+                const stage = stages[i];
+                setTimeout(() => {
+                    updatePlotImage(stage);
+                    if (stage === 'ripe') plots[plotId].state = 'ready';
+                }, elapsed);
+            }
         }
 
         async function harvestCrop(plotId) {
             const plot = plots[plotId];
-            const cropCode = plot?.crop;
-            const cropCfg = plot?.config;
+            if (!plot?.objectId) {
+                // Fallback for old-style plots
+                console.log('[HARVEST] No objectId, using old method');
+            }
 
             const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
             const plotCfg = await api('/api/configs/plots/plot');
             const emptyPlotImg = plotCfg?.stages?.empty?.image;
 
-            // Calculate yield (random between min and max)
-            const yieldRange = cropCfg?.yield || [1, 3];
-            const harvestQty = Math.floor(Math.random() * (yieldRange[1] - yieldRange[0] + 1)) + yieldRange[0];
+            // Call API to harvest (if we have objectId)
+            if (plot?.objectId) {
+                const response = await fetch(`${API_URL}/api/harvest?id=${plot.objectId}`, {
+                    headers: { 'Authorization': tg?.initData || '' }
+                });
+                const result = await response.json();
 
-            // Add to warehouse inventory
-            const itemKey = `item_${cropCode}`;
-            await modifyStat(itemKey, harvestQty);
+                if (result.error && result.error !== 'Withered') {
+                    alert(result.error);
+                    return;
+                }
 
-            // Add experience
-            const exp = cropCfg?.exp || 5;
-            await modifyStat('exp', exp);
+                // Reload inventory
+                await loadInventory();
 
-            // Delete from database
-            await deletePlantedCrop(plotId);
-
-            // Show harvest animation
-            plotEl.innerHTML = `<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+${harvestQty} 🍎</div>`;
+                const harvestQty = result.harvested || 0;
+                plotEl.innerHTML = `<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+${harvestQty} 🍎</div>`;
+            } else {
+                // Old fallback for plots without objectId
+                plotEl.innerHTML = `<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+? 🍎</div>`;
+            }
 
             setTimeout(() => {
                 plotEl.innerHTML = '';
@@ -1388,7 +1411,7 @@
                 if (emptyPlotImg) {
                     plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
                 }
-                plots[plotId] = { state: 'empty', crop: null, stage: 0 };
+                plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null };
             }, 1000);
         }
 
