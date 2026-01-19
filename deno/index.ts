@@ -557,19 +557,19 @@ async function handlePlantCrop(req: Request): Promise<Response> {
 
     for (const cp of checkpoints) {
       await hasuraQuery(`
-        mutation($objectId: Int!, $action: String!, $triggerAt: timestamptz!, $deadline: timestamptz) {
+        mutation($objectId: Int!, $action: String!, $timeOffset: Int!, $deadline: Int!) {
           insert_game_checkpoints_one(object: {
             object_id: $objectId,
             action: $action,
-            trigger_at: $triggerAt,
+            time_offset: $timeOffset,
             deadline: $deadline
           }) { id }
         }
       `, {
         objectId,
         action: cp.action,
-        triggerAt: new Date(createdTime + cp.time_offset * 1000).toISOString(),
-        deadline: cp.deadline ? new Date(createdTime + cp.deadline * 1000).toISOString() : null,
+        timeOffset: cp.time_offset,
+        deadline: cp.deadline || (cp.time_offset + 1800),
       }, userId);
     }
 
