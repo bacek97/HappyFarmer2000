@@ -866,6 +866,7 @@
 
         // Save planted crop to DB
         async function savePlantedCrop(plotId, cropCode, stage, plantedAt) {
+            console.log('[DB] Saving crop:', { plotId, cropCode, stage, plantedAt });
             const data = await gql(`
                 mutation($typeCode: String!, $x: Int!, $cropCode: String!, $stage: String!, $plantedAt: String!) {
                     insert_game_objects_one(object: {
@@ -902,6 +903,7 @@
 
         // Load all planted crops from DB
         async function loadPlantedCrops() {
+            console.log('[DB] Loading planted crops...');
             const data = await gql(`
                 query {
                     game_objects(where: {type_code: {_like: "crop_%"}}) {
@@ -932,7 +934,9 @@
 
         // Restore planted crops from database on game load
         async function restorePlantedCrops() {
+            console.log('[DB] Restoring planted crops...');
             const plantedCrops = await loadPlantedCrops();
+            console.log('[DB] Found crops:', plantedCrops);
 
             for (const obj of plantedCrops) {
                 const plotId = obj.x;
