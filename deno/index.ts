@@ -96,6 +96,8 @@ const HASURA_URL = Deno.env.get("HASURA_GRAPHQL_ENDPOINT") || "https://happy-far
 const SERVICE_TOKEN = Deno.env.get("SERVICE_USER_TOKEN") || "";
 
 async function hasuraQuery(query: string, variables: Record<string, unknown> = {}, userId?: string) {
+  console.log("[HASURA] Query:", query.slice(0, 100), "userId:", userId);
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -476,15 +478,21 @@ async function handlePlantCrop(req: Request): Promise<Response> {
     const plotId = parseInt(url.searchParams.get("plot_id") || "0");
     const cropCode = url.searchParams.get("crop") || "";
 
+    console.log("[PLANT] Request:", { userId, plotId, cropCode });
+
     if (!cropCode || plotId < 0) {
       return new Response(JSON.stringify({ error: "Missing crop or plot_id" }), { status: 400, headers });
     }
 
     // Get crop config
+    console.log("[PLANT] Available crops:", Object.keys(configData.crops || {}));
     const cropConfig = configData.crops?.[cropCode];
     if (!cropConfig) {
-      return new Response(JSON.stringify({ error: "Unknown crop" }), { status: 404, headers });
+      console.log("[PLANT] Crop not found:", cropCode);
+      return new Response(JSON.stringify({ error: "Unknown crop", available: Object.keys(configData.crops || {}) }), { status: 404, headers });
     }
+
+    console.log("[PLANT] Crop config found:", cropConfig.name);
 
     // Check and deduct seeds from user_stats
     const seedKey = `seed_${cropCode}`;
