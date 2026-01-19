@@ -520,21 +520,20 @@ async function handlePlantCrop(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: "No seeds" }), { status: 400, headers });
     }
 
-    // Deduct 1 seed
+    // Deduct 1 seed - user_id is automatically set by Hasura permission
     await hasuraQuery(`
-      mutation($userId: bigint!, $key: String!, $value: Int!) {
+      mutation($key: String!, $value: Int!) {
         insert_user_stats_one(
-          object: {user_id: $userId, key: $key, value: $value}
+          object: {key: $key, value: $value}
           on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
         ) { key }
       }
-    `, { userId, key: seedKey, value: currentSeeds - 1 }, userId);
+    `, { key: seedKey, value: currentSeeds - 1 }, userId);
 
-    // Create game_object
+    // Create game_object - user_id is automatically set by Hasura permission
     const objData = await hasuraQuery(`
-      mutation($userId: bigint!, $typeCode: String!, $x: Int!) {
+      mutation($typeCode: String!, $x: Int!) {
         insert_game_objects_one(object: {
-          user_id: $userId,
           type_code: $typeCode,
           x: $x,
           y: 0
@@ -543,7 +542,7 @@ async function handlePlantCrop(req: Request): Promise<Response> {
           created_at
         }
       }
-    `, { userId, typeCode: `crop_${cropCode}`, x: plotId }, userId);
+    `, { typeCode: `crop_${cropCode}`, x: plotId }, userId);
 
     const objectId = objData?.insert_game_objects_one?.id;
     const createdAt = objData?.insert_game_objects_one?.created_at;
@@ -679,7 +678,7 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
     const exp = cropConfig?.exp || 5;
     const sellSilver = cropConfig?.products?.[0]?.sell_silver || 10;
 
-    // Add items to inventory
+    // Add items to inventory - user_id is automatically set by Hasura
     const currentItems = await hasuraQuery(`
       query($userId: bigint!, $key: String!) {
         user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) { value }
@@ -688,13 +687,13 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
 
     const currentItemCount = currentItems?.user_stats?.[0]?.value || 0;
     await hasuraQuery(`
-      mutation($userId: bigint!, $key: String!, $value: Int!) {
+      mutation($key: String!, $value: Int!) {
         insert_user_stats_one(
-          object: {user_id: $userId, key: $key, value: $value}
+          object: {key: $key, value: $value}
           on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
         ) { key }
       }
-    `, { userId, key: itemKey, value: currentItemCount + yieldAmount }, userId);
+    `, { key: itemKey, value: currentItemCount + yieldAmount }, userId);
 
     // Add exp
     const currentExp = await hasuraQuery(`
@@ -704,13 +703,13 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
     `, { userId }, userId);
     const expValue = (currentExp?.user_stats?.[0]?.value || 0) + exp;
     await hasuraQuery(`
-      mutation($userId: bigint!, $value: Int!) {
+      mutation($key: String!, $value: Int!) {
         insert_user_stats_one(
-          object: {user_id: $userId, key: "exp", value: $value}
+          object: {key: $key, value: $value}
           on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
         ) { key }
       }
-    `, { userId, value: expValue }, userId);
+    `, { key: "exp", value: expValue }, userId);
 
     // Delete the game object
     await hasuraQuery(`
