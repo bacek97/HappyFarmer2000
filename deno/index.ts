@@ -722,11 +722,17 @@ await scanConfigs();
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname;
-  const headers = { "Access-Control-Allow-Origin": "*" };
+
+  // CORS headers for all responses
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
 
   // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: { ...headers, "Access-Control-Allow-Methods": "GET, POST", "Access-Control-Allow-Headers": "*" } });
+    return new Response(null, { headers: corsHeaders });
   }
 
   if (path === "/v1/auth/claims") {
@@ -761,7 +767,7 @@ Deno.serve(async (req) => {
   // List all available endpoints
   if (path === "/api/endpoints") {
     const list = Array.from(ENDPOINTS.entries()).map(([p, e]) => ({ path: p, category: e.category, handler: e.handler }));
-    return new Response(JSON.stringify(list), { headers: { ...headers, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(list), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   // Dynamic FSM endpoints
@@ -773,7 +779,7 @@ Deno.serve(async (req) => {
       handler: endpoint.handler,
       status: "DB layer needed",
       params: Object.fromEntries(url.searchParams)
-    }), { headers: { ...headers, "Content-Type": "application/json" } });
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
   return new Response("Not Found", { status: 404 });
 });
