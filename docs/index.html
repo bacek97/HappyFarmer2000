@@ -862,6 +862,137 @@
             document.getElementById('gold').textContent = (inventory.gold || 0).toLocaleString();
         }
 
+        // ===== Planted Crops DB =====
+
+        // Save planted crop to DB
+        async function savePlantedCrop(plotId, cropCode, stage, plantedAt) {
+            const data = await gql(`
+                mutation($typeCode: String!, $x: Int!, $cropCode: String!, $stage: String!, $plantedAt: String!) {
+                    insert_game_objects_one(object: {
+                        type_code: $typeCode,
+                        x: $x,
+                        y: 0
+                    }) {
+                        id
+                    }
+                }
+            `, {
+                typeCode: `crop_${cropCode}`,
+                x: plotId,
+                cropCode,
+                stage,
+                plantedAt: plantedAt.toString()
+            });
+
+            if (data?.insert_game_objects_one?.id) {
+                const objectId = data.insert_game_objects_one.id;
+                // Save params
+                await gql(`
+                    mutation($objectId: Int!, $stage: String!, $plantedAt: String!) {
+                        insert_game_object_params(objects: [
+                            {object_id: $objectId, key: "stage", value: $stage},
+                            {object_id: $objectId, key: "planted_at", value: $plantedAt}
+                        ]) { affected_rows }
+                    }
+                `, { objectId, stage, plantedAt: plantedAt.toString() });
+                return objectId;
+            }
+            return null;
+        }
+
+        // Load all planted crops from DB
+        async function loadPlantedCrops() {
+            const data = await gql(`
+                query {
+                    game_objects(where: {type_code: {_like: "crop_%"}}) {
+                        id
+                        type_code
+                        x
+                        created_at
+                        params {
+                            key
+                            value
+                        }
+                    }
+                }
+            `);
+            return data?.game_objects || [];
+        }
+
+        // Delete planted crop from DB (on harvest)
+        async function deletePlantedCrop(plotId) {
+            await gql(`
+                mutation($plotId: Int!) {
+                    delete_game_objects(where: {x: {_eq: $plotId}, type_code: {_like: "crop_%"}}) {
+                        affected_rows
+                    }
+                }
+            `, { plotId });
+        }
+
+        // Restore planted crops from database on game load
+        async function restorePlantedCrops() {
+            const plantedCrops = await loadPlantedCrops();
+
+            for (const obj of plantedCrops) {
+                const plotId = obj.x;
+                const cropCode = obj.type_code.replace('crop_', '');
+                const params = {};
+                (obj.params || []).forEach(p => {
+                    params[p.key] = p.value;
+                });
+
+                const plantedAt = parseInt(params.planted_at) || new Date(obj.created_at).getTime();
+                const cropCfg = await api(`/api/configs/crops/${cropCode}`);
+                if (!cropCfg) continue;
+
+                // Calculate current stage based on time elapsed
+                const elapsed = Date.now() - plantedAt;
+                const stageTimes = cropCfg.stage_times || [30000, 60000, 90000]; // default 30s per stage
+                const totalGrowTime = stageTimes.reduce((a, b) => a + b * 1000, 0);
+
+                let currentStage = 'seed';
+                let isReady = false;
+                let timeSum = 0;
+                const stages = ['seed', 'sprout', 'growing', 'ripe'];
+
+                for (let i = 0; i < stageTimes.length; i++) {
+                    timeSum += stageTimes[i] * 1000;
+                    if (elapsed >= timeSum && i < stages.length - 1) {
+                        currentStage = stages[i + 1];
+                    }
+                }
+
+                if (elapsed >= totalGrowTime) {
+                    currentStage = 'ripe';
+                    isReady = true;
+                }
+
+                // Update plot state
+                plots[plotId] = {
+                    state: isReady ? 'ready' : 'planted',
+                    crop: cropCode,
+                    stage: currentStage,
+                    config: cropCfg,
+                    plantedAt
+                };
+
+                // Update plot visual
+                const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
+                if (plotEl) {
+                    plotEl.classList.remove('empty', 'blocked');
+                    plotEl.classList.add('planted');
+
+                    const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
+                    const img = cropCfg?.stages?.[currentStage]?.image;
+                    const html = img
+                        ? `<img src="../deno/${img}" class="crop-img">`
+                        : `<div class="crop-img" style="font-size:30px;text-align:center">${currentStage === 'ripe' ? '🍎' : '🌱'}</div>`;
+                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage]}</span>`;
+                }
+            }
+        }
+
         // Map panning functionality
         let isPanning = false, startX = 0, startY = 0, panX = 0, panY = 0;
 
@@ -966,6 +1097,9 @@
                 plot.onclick = () => onPlotClick(i);
                 grid.appendChild(plot);
             }
+
+            // Load planted crops from database and restore visuals
+            await restorePlantedCrops();
 
             // Setup toolbar
             document.querySelectorAll('.tool').forEach(tool => {
@@ -1184,9 +1318,13 @@
 
             const cropCfg = await api(`/api/configs/crops/${cropCode}`);
             const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            plots[plotId] = { state: 'planted', crop: cropCode, stage: 'seed', config: cropCfg };
+            const plantedAt = Date.now();
+            plots[plotId] = { state: 'planted', crop: cropCode, stage: 'seed', config: cropCfg, plantedAt };
             plotEl.classList.remove('empty');
             plotEl.classList.add('planted');
+
+            // Save to database
+            await savePlantedCrop(plotId, cropCode, 'seed', plantedAt);
 
             const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
 
@@ -1224,6 +1362,9 @@
             // Add experience
             const exp = cropCfg?.exp || 5;
             await modifyStat('exp', exp);
+
+            // Delete from database
+            await deletePlantedCrop(plotId);
 
             // Show harvest animation
             plotEl.innerHTML = `<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+${harvestQty} 🍎</div>`;
