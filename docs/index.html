@@ -867,8 +867,12 @@
         // Save planted crop to DB
         async function savePlantedCrop(plotId, cropCode, stage, plantedAt) {
             console.log('[DB] Saving crop:', { plotId, cropCode, stage, plantedAt });
+            const typeCode = `crop_${cropCode}`;
+            const plantedAtStr = plantedAt.toString();
+            
+            // First create the game object
             const data = await gql(`
-                mutation($typeCode: String!, $x: Int!, $cropCode: String!, $stage: String!, $plantedAt: String!) {
+                mutation($typeCode: String!, $x: Int!) {
                     insert_game_objects_one(object: {
                         type_code: $typeCode,
                         x: $x,
@@ -877,25 +881,22 @@
                         id
                     }
                 }
-            `, {
-                typeCode: `crop_${cropCode}`,
-                x: plotId,
-                cropCode,
-                stage,
-                plantedAt: plantedAt.toString()
-            });
+            `, { typeCode, x: plotId });
+
+            console.log('[DB] Created game_object:', data);
 
             if (data?.insert_game_objects_one?.id) {
                 const objectId = data.insert_game_objects_one.id;
                 // Save params
-                await gql(`
+                const paramsData = await gql(`
                     mutation($objectId: Int!, $stage: String!, $plantedAt: String!) {
                         insert_game_object_params(objects: [
                             {object_id: $objectId, key: "stage", value: $stage},
                             {object_id: $objectId, key: "planted_at", value: $plantedAt}
                         ]) { affected_rows }
                     }
-                `, { objectId, stage, plantedAt: plantedAt.toString() });
+                `, { objectId, stage, plantedAt: plantedAtStr });
+                console.log('[DB] Created params:', paramsData);
                 return objectId;
             }
             return null;
