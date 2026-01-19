@@ -620,17 +620,17 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
 
     // Get object and check ownership
     const objData = await hasuraQuery(`
-      query($objectId: Int!, $userId: bigint!) {
+      query($objectId: Int!) {
         game_objects_by_pk(id: $objectId) {
           id
           type_code
           user_id
           created_at
           params { key value }
-          checkpoints { action trigger_at deadline done_at }
+          checkpoints { action time_offset deadline done_at }
         }
       }
-    `, { objectId, userId }, userId);
+    `, { objectId }, userId);
 
     const obj = objData?.game_objects_by_pk;
     if (!obj) {
@@ -641,21 +641,22 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
       return new Response(JSON.stringify({ error: "Not your crop" }), { status: 403, headers });
     }
 
-    // Check if ready to harvest
+    // Check if ready to harvest - time_offset and deadline are seconds from created_at
     const harvestCheckpoint = obj.checkpoints?.find((c: any) => c.action === 'harvest');
     if (!harvestCheckpoint) {
       return new Response(JSON.stringify({ error: "No harvest checkpoint" }), { status: 400, headers });
     }
 
     const now = Date.now();
-    const triggerTime = new Date(harvestCheckpoint.trigger_at).getTime();
-    const deadline = harvestCheckpoint.deadline ? new Date(harvestCheckpoint.deadline).getTime() : null;
+    const createdAtMs = new Date(obj.created_at).getTime();
+    const triggerTimeMs = createdAtMs + (harvestCheckpoint.time_offset * 1000);
+    const deadlineMs = createdAtMs + (harvestCheckpoint.deadline * 1000);
 
-    if (now < triggerTime) {
+    if (now < triggerTimeMs) {
       return new Response(JSON.stringify({ error: "Not ready yet" }), { status: 400, headers });
     }
 
-    if (deadline && now > deadline) {
+    if (now > deadlineMs) {
       // Withered - just delete
       await hasuraQuery(`
         mutation($objectId: Int!) {
