@@ -301,6 +301,42 @@
             border-radius: 8px;
         }
 
+        .plot .countdown-timer {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(76, 175, 80, 0.85);
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .plot .countdown-timer.warning {
+            background: rgba(255, 152, 0, 0.85);
+        }
+
+        .plot .countdown-timer.danger {
+            background: rgba(244, 67, 54, 0.85);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
 
         /* Map Objects (Factories, Animals, Buildings) */
         .map-object {
@@ -1208,9 +1244,11 @@
                 const elapsed = Date.now() - plantedAt;
                 const stageTimes = cropCfg.stage_times || [30000, 60000, 90000]; // default 30s per stage
                 const totalGrowTime = stageTimes.reduce((a, b) => a + b * 1000, 0);
+                const witherTime = (cropCfg.wither_time || 3600) * 1000; // default 1 hour
 
                 let currentStage = 'seed';
                 let isReady = false;
+                let isWithered = false;
                 let timeSum = 0;
                 const stages = ['seed', 'sprout', 'growing', 'ripe'];
 
@@ -1224,6 +1262,13 @@
                 if (elapsed >= totalGrowTime) {
                     currentStage = 'ripe';
                     isReady = true;
+
+                    // Check if crop has withered (past wither deadline)
+                    if (elapsed >= totalGrowTime + witherTime) {
+                        currentStage = 'withered';
+                        isReady = false;
+                        isWithered = true;
+                    }
                 }
 
                 // Update plot state
@@ -1232,10 +1277,10 @@
                 const yieldFromConfig = cropCfg.products?.[0]?.yield?.[0] || 2;
                 const yieldAmount = yieldFromParams || yieldFromConfig;
 
-                console.log(`[DB] Plot ${plotId}: crop=${cropCode}, yieldFromParams=${yieldFromParams}, yieldFromConfig=${yieldFromConfig}, final=${yieldAmount}, params=`, params);
+                console.log(`[DB] Plot ${plotId}: crop=${cropCode}, stage=${currentStage}, isWithered=${isWithered}, yieldFromParams=${yieldFromParams}, yieldFromConfig=${yieldFromConfig}, final=${yieldAmount}, params=`, params);
 
                 plots[plotId] = {
-                    state: isReady ? 'ready' : 'planted',
+                    state: isWithered ? 'withered' : (isReady ? 'ready' : 'planted'),
                     crop: cropCode,
                     stage: currentStage,
                     config: cropCfg,
@@ -1250,14 +1295,172 @@
                     plotEl.classList.remove('empty', 'blocked');
                     plotEl.classList.add('planted');
 
-                    const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
+                    const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓', withered: '💀' };
                     const img = cropCfg?.stages?.[currentStage]?.image;
                     const html = img
                         ? `<img src="../deno/${img}" class="crop-img">`
-                        : `<div class="crop-img" style="font-size:30px;text-align:center">${currentStage === 'ripe' ? '🍎' : '🌱'}</div>`;
+                        : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (currentStage === 'ripe' ? '🍎' : '🌱')}</div>`;
                     plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage]}</span>`;
+
+                    // Add withered styling
+                    if (isWithered) {
+                        plotEl.style.filter = 'grayscale(60%) brightness(0.8)';
+                    }
                 }
             }
+
+            // Start countdown timer updates
+            startCountdownTimers();
+        }
+
+        // ===== Countdown Timer System =====
+        let countdownInterval = null;
+
+        function formatTime(seconds) {
+            if (seconds <= 0) return '0s';
+            if (seconds < 60) return `${Math.floor(seconds)}s`;
+            if (seconds < 3600) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+            }
+            const hours = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+        }
+
+        function updatePlotTimer(plotId) {
+            const plot = plots[plotId];
+            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
+            if (!plotEl || !plot || plot.state === 'empty' || plot.state === 'blocked') return;
+
+            // Remove existing timer
+            const existingTimer = plotEl.querySelector('.countdown-timer');
+            if (existingTimer) existingTimer.remove();
+
+            if (plot.state === 'withered') return; // No timer for withered
+
+            const cropCfg = plot.config;
+            if (!cropCfg) return;
+
+            const stageTimes = cropCfg.stage_times || [30, 60, 90]; // in seconds
+            const witherTime = cropCfg.wither_time || 3600;
+            const elapsed = (Date.now() - plot.plantedAt) / 1000; // in seconds
+
+            let timeSum = 0;
+            let nextStageTime = null;
+            let isLastStage = false;
+            const stages = ['seed', 'sprout', 'growing', 'ripe'];
+
+            // Find time to next stage
+            for (let i = 0; i < stageTimes.length; i++) {
+                timeSum += stageTimes[i];
+                if (elapsed < timeSum) {
+                    nextStageTime = timeSum - elapsed;
+                    break;
+                }
+            }
+
+            // If past all stages, show wither countdown
+            const totalGrowTime = stageTimes.reduce((a, b) => a + b, 0);
+            if (elapsed >= totalGrowTime) {
+                isLastStage = true;
+                const witherDeadline = totalGrowTime + witherTime;
+                nextStageTime = witherDeadline - elapsed;
+            }
+
+            if (nextStageTime === null || nextStageTime <= 0) return;
+
+            // Determine urgency class
+            let urgencyClass = '';
+            if (isLastStage) {
+                // Wither countdown - more urgent
+                if (nextStageTime < 60) urgencyClass = 'danger';
+                else if (nextStageTime < 300) urgencyClass = 'warning';
+            } else {
+                // Growth countdown - less urgent
+                if (nextStageTime < 10) urgencyClass = 'warning';
+            }
+
+            const icon = isLastStage ? '⏰' : '🌱';
+            const timer = document.createElement('div');
+            timer.className = `countdown-timer ${urgencyClass}`;
+            timer.innerHTML = `${icon} ${formatTime(nextStageTime)}`;
+            plotEl.appendChild(timer);
+        }
+
+        function updateAllPlotTimers() {
+            for (let i = 0; i < plots.length; i++) {
+                if (plots[i] && plots[i].state !== 'empty' && plots[i].state !== 'blocked') {
+                    updatePlotTimer(i);
+
+                    // Check for stage transitions
+                    checkStageTransition(i);
+                }
+            }
+        }
+
+        function checkStageTransition(plotId) {
+            const plot = plots[plotId];
+            if (!plot || !plot.config || plot.state === 'empty' || plot.state === 'withered') return;
+
+            const cropCfg = plot.config;
+            const stageTimes = cropCfg.stage_times || [30, 60, 90];
+            const witherTime = cropCfg.wither_time || 3600;
+            const elapsed = (Date.now() - plot.plantedAt) / 1000;
+            const totalGrowTime = stageTimes.reduce((a, b) => a + b, 0);
+
+            const stages = ['seed', 'sprout', 'growing', 'ripe'];
+            let timeSum = 0;
+            let currentStage = 'seed';
+
+            for (let i = 0; i < stageTimes.length; i++) {
+                timeSum += stageTimes[i];
+                if (elapsed >= timeSum && i < stages.length - 1) {
+                    currentStage = stages[i + 1];
+                }
+            }
+
+            if (elapsed >= totalGrowTime) {
+                currentStage = 'ripe';
+                plot.state = 'ready';
+            }
+
+            // Check for wither
+            if (elapsed >= totalGrowTime + witherTime) {
+                currentStage = 'withered';
+                plot.state = 'withered';
+            }
+
+            // Update visual if stage changed
+            if (currentStage !== plot.stage) {
+                plot.stage = currentStage;
+                const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
+                if (plotEl) {
+                    const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓', withered: '💀' };
+                    const img = cropCfg?.stages?.[currentStage]?.image;
+                    const isWithered = currentStage === 'withered';
+                    const html = img
+                        ? `<img src="../deno/${img}" class="crop-img">`
+                        : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (currentStage === 'ripe' ? '🍎' : '🌱')}</div>`;
+                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage]}</span>`;
+
+                    if (isWithered) {
+                        plotEl.style.filter = 'grayscale(60%) brightness(0.8)';
+                    }
+                }
+            }
+        }
+
+        function startCountdownTimers() {
+            // Clear existing interval
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            // Update immediately
+            updateAllPlotTimers();
+
+            // Update every second
+            countdownInterval = setInterval(updateAllPlotTimers, 1000);
         }
 
         // Map panning functionality
@@ -1535,6 +1738,12 @@
                 return;
             }
 
+            // Withered crop - clear it
+            if (plot.state === 'withered') {
+                await clearWitheredCrop(id);
+                return;
+            }
+
             // Empty plot - plant selected seed or show selector
             if (plot.state === 'empty') {
                 if (selectedSeed && (inventory[`seed_${selectedSeed}`] || 0) > 0) {
@@ -1545,6 +1754,43 @@
                     await showCropSelector(id);
                 }
             }
+        }
+
+        // Clear a withered crop from the plot
+        async function clearWitheredCrop(plotId) {
+            const plot = plots[plotId];
+            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
+            if (!plotEl) return;
+
+            const emptyPlotImg = CONFIGS.plots?.plot?.stages?.empty?.image;
+
+            // Show clearing animation
+            plotEl.innerHTML = `<div class="harvest-popup" style="background: linear-gradient(135deg, rgba(139, 69, 19, 0.95), rgba(101, 67, 33, 0.95));">🗑️ Убрано</div>`;
+
+            // Try to delete from server (if objectId exists)
+            if (plot?.objectId) {
+                try {
+                    await fetch(`${API_URL}/api/harvest?id=${plot.objectId}`, {
+                        headers: { 'Authorization': tg?.initData || '' }
+                    });
+                } catch (e) {
+                    console.log('[CLEAR] Error deleting withered crop:', e);
+                }
+            }
+
+            // Clear plot visually
+            setTimeout(() => {
+                plotEl.innerHTML = '';
+                plotEl.classList.remove('planted');
+                plotEl.classList.add('empty');
+                plotEl.style.filter = ''; // Remove grayscale
+                if (emptyPlotImg) {
+                    plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
+                }
+                plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null };
+            }, 800);
+
+            showToast('Увядший урожай убран', 'success');
         }
 
         // Open seed selector modal to choose which seed to use for quick planting
@@ -1659,39 +1905,34 @@
             // Update UI
             const cropCfg = await api(`/api/configs/crops/${cropCode}`);
             const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
+            const plantedAt = Date.now();
+
+            // Get yield from server response or estimate from config
+            const yieldAmount = result.yield || cropCfg?.products?.[0]?.yield?.[0] || 2;
+
             plots[plotId] = {
                 state: 'planted',
                 crop: cropCode,
                 stage: 'seed',
                 config: cropCfg,
-                objectId: result.objectId
+                objectId: result.objectId,
+                plantedAt: plantedAt,  // For countdown timer
+                yieldAmount: yieldAmount  // For optimistic harvest
             };
             plotEl.classList.remove('empty');
             plotEl.classList.add('planted');
 
             const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
-            const stageTimes = cropCfg?.stage_times || [30, 60, 90];
 
-            function updatePlotImage(stage) {
-                const img = cropCfg?.stages?.[stage]?.image;
-                const html = img
-                    ? `<img src="../deno/${img}" class="crop-img">`
-                    : `<div class="crop-img" style="font-size:30px;text-align:center">${stage === 'ripe' ? '🍎' : '🌱'}</div>`;
-                plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[stage]}</span>`;
-            }
+            // Show initial seed stage image
+            const img = cropCfg?.stages?.seed?.image;
+            const html = img
+                ? `<img src="../deno/${img}" class="crop-img">`
+                : `<div class="crop-img" style="font-size:30px;text-align:center">🌱</div>`;
+            plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames['seed']}</span>`;
 
-            // Use stage_times from config (in seconds)
-            updatePlotImage('seed');
-            let elapsed = 0;
-            const stages = ['sprout', 'growing', 'ripe'];
-            for (let i = 0; i < stageTimes.length; i++) {
-                elapsed += stageTimes[i] * 1000;
-                const stage = stages[i];
-                setTimeout(() => {
-                    updatePlotImage(stage);
-                    if (stage === 'ripe') plots[plotId].state = 'ready';
-                }, elapsed);
-            }
+            // Countdown timer will handle stage transitions automatically
+            updatePlotTimer(plotId);
         }
 
         async function harvestCrop(plotId) {
