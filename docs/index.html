@@ -630,6 +630,142 @@
                 transform: scale(1.1);
             }
         }
+
+        /* Optimistic Harvest Animations */
+        .harvest-popup {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(56, 142, 60, 0.95));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 16px;
+            animation: harvestFloat 1s ease-out forwards;
+            z-index: 100;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes harvestFloat {
+            0% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(-25px) scale(1.1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-50px) scale(0.9);
+            }
+        }
+
+        .plot.harvesting {
+            animation: harvestPulse 0.4s ease-out;
+        }
+
+        @keyframes harvestPulse {
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+
+            50% {
+                transform: scale(1.15);
+                filter: brightness(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        .plot.pending {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .plot.error {
+            animation: errorShake 0.5s ease-out;
+        }
+
+        @keyframes errorShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-5px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(5px);
+            }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 3000;
+            animation: toastSlide 0.3s ease-out;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #F44336, #D32F2F);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+        }
+
+        .toast.warning {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+        }
+
+        @keyframes toastSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes toastFadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 
@@ -745,6 +881,173 @@
         let inventory = {}; // {seed_tomato: 5, item_wheat: 10, silver: 1000}
         let userId = tg?.initDataUnsafe?.user?.id || 0;
         let selectedSeed = null; // Currently selected seed for quick planting
+
+        // ===== GameFSM - State Management with Rollback =====
+        class GameFSM {
+            constructor() {
+                this.history = [];
+                this.maxHistory = 10;
+                this.pendingActions = this.loadPendingActions();
+            }
+
+            // Save current game state for potential rollback
+            saveState(plots, inventory) {
+                this.history.push({
+                    plots: JSON.parse(JSON.stringify(plots)),
+                    inventory: JSON.parse(JSON.stringify(inventory)),
+                    timestamp: Date.now()
+                });
+                if (this.history.length > this.maxHistory) {
+                    this.history.shift();
+                }
+            }
+
+            // Rollback to previous state
+            rollback() {
+                return this.history.pop() || null;
+            }
+
+            // Clear state history (after confirmed sync)
+            clearHistory() {
+                this.history = [];
+            }
+
+            // ===== Offline Action Queue =====
+            loadPendingActions() {
+                try {
+                    const stored = localStorage.getItem('farm_pending_actions');
+                    return stored ? JSON.parse(stored) : [];
+                } catch (e) {
+                    console.error('[FSM] Failed to load pending actions:', e);
+                    return [];
+                }
+            }
+
+            savePendingActions() {
+                try {
+                    localStorage.setItem('farm_pending_actions', JSON.stringify(this.pendingActions));
+                } catch (e) {
+                    console.error('[FSM] Failed to save pending actions:', e);
+                }
+            }
+
+            // Add action to pending queue
+            queueAction(action) {
+                const actionId = `${action.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                this.pendingActions.push({
+                    id: actionId,
+                    ...action,
+                    createdAt: Date.now(),
+                    retries: 0
+                });
+                this.savePendingActions();
+                return actionId;
+            }
+
+            // Remove completed action from queue
+            completeAction(actionId) {
+                this.pendingActions = this.pendingActions.filter(a => a.id !== actionId);
+                this.savePendingActions();
+            }
+
+            // Get pending action by ID
+            getAction(actionId) {
+                return this.pendingActions.find(a => a.id === actionId);
+            }
+
+            // Process all pending actions (on reconnect)
+            async syncPendingActions(executeCallback) {
+                if (this.pendingActions.length === 0) return { synced: 0, failed: 0 };
+
+                console.log(`[FSM] Syncing ${this.pendingActions.length} pending actions...`);
+                let synced = 0, failed = 0;
+
+                for (const action of [...this.pendingActions]) {
+                    try {
+                        await executeCallback(action);
+                        this.completeAction(action.id);
+                        synced++;
+                    } catch (e) {
+                        console.error(`[FSM] Failed to sync action ${action.id}:`, e);
+                        action.retries++;
+                        if (action.retries >= 3) {
+                            // Give up after 3 retries
+                            this.completeAction(action.id);
+                            failed++;
+                        }
+                    }
+                }
+                this.savePendingActions();
+                return { synced, failed };
+            }
+
+            hasPendingActions() {
+                return this.pendingActions.length > 0;
+            }
+        }
+
+        const gameFSM = new GameFSM();
+
+        // ===== UI Helper Functions =====
+        function showToast(message, type = 'success', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'toastFadeOut 0.3s ease-out forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        function restorePlotVisual(plotId, plotState) {
+            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
+            if (!plotEl || !plotState) return;
+
+            plotEl.classList.remove('empty', 'harvesting', 'pending', 'error');
+            plotEl.classList.add('planted');
+
+            const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
+            const stage = plotState.stage || 'ripe';
+            const img = plotState.config?.stages?.[stage]?.image;
+            const html = img
+                ? `<img src="../deno/${img}" class="crop-img">`
+                : `<div class="crop-img" style="font-size:30px;text-align:center">${stage === 'ripe' ? '🍎' : '🌱'}</div>`;
+            plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[stage] || '✓'}</span>`;
+        }
+
+        // Check online status and sync pending actions
+        async function checkAndSyncPendingActions() {
+            if (!navigator.onLine || !gameFSM.hasPendingActions()) return;
+
+            const result = await gameFSM.syncPendingActions(async (action) => {
+                if (action.type === 'harvest') {
+                    const response = await fetch(`${API_URL}/api/harvest?id=${action.objectId}`, {
+                        headers: { 'Authorization': tg?.initData || '' }
+                    });
+                    const result = await response.json();
+                    if (result.error && result.error !== 'Withered') {
+                        throw new Error(result.error);
+                    }
+                }
+            });
+
+            if (result.synced > 0) {
+                showToast(`Синхронизировано: ${result.synced} действий`, 'success');
+                await loadInventory(); // Refresh inventory from server
+            }
+            if (result.failed > 0) {
+                showToast(`Ошибка синхронизации: ${result.failed} действий`, 'error');
+            }
+        }
+
+        // Listen for online event to sync
+        window.addEventListener('online', () => {
+            console.log('[FSM] Back online, syncing...');
+            setTimeout(checkAndSyncPendingActions, 1000);
+        });
+
 
         async function gql(query, variables = {}) {
             try {
@@ -924,13 +1227,17 @@
                 }
 
                 // Update plot state
+                // Extract yield amount from params for optimistic harvest display
+                const yieldAmount = parseInt(params.yield) || cropCfg.products?.[0]?.yield?.[0] || 2;
+
                 plots[plotId] = {
                     state: isReady ? 'ready' : 'planted',
                     crop: cropCode,
                     stage: currentStage,
                     config: cropCfg,
                     plantedAt,
-                    objectId: obj.id  // Important for harvest
+                    objectId: obj.id,  // Important for harvest
+                    yieldAmount  // Preloaded for instant harvest feedback
                 };
 
                 // Update plot visual
@@ -1015,8 +1322,14 @@
             // Load crops config for quick seed selection
             CONFIGS.crops = await api('/api/configs/crops');
 
+            // Cache plot config for optimistic harvest
+            CONFIGS.plots = { plot: plotCfg };
+
             // Load user inventory from database
             await loadInventory();
+
+            // Sync any pending offline actions
+            await checkAndSyncPendingActions();
 
             // Load map objects (factories) FIRST so they appear behind plots
             await loadMapObjects();
@@ -1380,46 +1693,116 @@
         async function harvestCrop(plotId) {
             const plot = plots[plotId];
             if (!plot?.objectId) {
-                // Fallback for old-style plots
-                console.log('[HARVEST] No objectId, using old method');
+                console.log('[HARVEST] No objectId, cannot harvest');
+                showToast('Ошибка: нет данных о посадке', 'error');
+                return;
             }
 
             const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            const plotCfg = await api('/api/configs/plots/plot');
-            const emptyPlotImg = plotCfg?.stages?.empty?.image;
+            if (!plotEl) return;
 
-            // Call API to harvest (if we have objectId)
-            if (plot?.objectId) {
+            // Get plot config for empty image (cached or fetch)
+            const emptyPlotImg = CONFIGS.plots?.plot?.stages?.empty?.image;
+
+            // 1. SAVE STATE for potential rollback
+            gameFSM.saveState(plots, inventory);
+            const prevPlotState = JSON.parse(JSON.stringify(plot));
+
+            // 2. PREDICT harvest amount (preloaded from DB or estimate from config)
+            const yieldAmount = plot.yieldAmount || plot.config?.products?.[0]?.yield?.[0] || 2;
+            const cropCode = plot.crop;
+            const itemKey = `item_${cropCode}`;
+            const cropIcon = plot.config?.stages?.ripe?.image ? '🍎' : '📦';
+
+            // 3. OPTIMISTIC UPDATE - show immediately
+            inventory[itemKey] = (inventory[itemKey] || 0) + yieldAmount;
+            updateResourcesUI();
+
+            // Show harvest animation with popup
+            plotEl.classList.add('harvesting');
+            plotEl.innerHTML = `<div class="harvest-popup">+${yieldAmount} ${cropIcon}</div>`;
+
+            // Mark plot as empty optimistically
+            plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null, yieldAmount: null };
+
+            // Clear plot visually after animation
+            setTimeout(() => {
+                plotEl.innerHTML = '';
+                plotEl.classList.remove('planted', 'harvesting');
+                plotEl.classList.add('empty');
+                if (emptyPlotImg) {
+                    plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
+                }
+            }, 1000);
+
+            // 4. QUEUE ACTION for offline sync
+            const actionId = gameFSM.queueAction({
+                type: 'harvest',
+                objectId: plot.objectId,
+                plotId: plotId,
+                expectedYield: yieldAmount,
+                cropCode: cropCode
+            });
+
+            // 5. BACKGROUND REQUEST
+            try {
                 const response = await fetch(`${API_URL}/api/harvest?id=${plot.objectId}`, {
                     headers: { 'Authorization': tg?.initData || '' }
                 });
                 const result = await response.json();
 
                 if (result.error && result.error !== 'Withered') {
-                    alert(result.error);
+                    throw new Error(result.error);
+                }
+
+                // 6. SUCCESS - Complete the action and adjust if needed
+                gameFSM.completeAction(actionId);
+
+                // Adjust inventory if server value differs from prediction
+                const actualYield = result.harvested || 0;
+                if (actualYield !== yieldAmount) {
+                    const diff = actualYield - yieldAmount;
+                    inventory[itemKey] = (inventory[itemKey] || 0) + diff;
+                    updateResourcesUI();
+                    console.log(`[HARVEST] Adjusted yield: predicted ${yieldAmount}, actual ${actualYield}`);
+                }
+
+                console.log(`[HARVEST] Success: ${cropCode} x${actualYield}`);
+
+            } catch (error) {
+                console.error('[HARVEST] Error, rolling back:', error);
+
+                // Check if offline - keep action queued for later sync
+                if (!navigator.onLine) {
+                    showToast('Оффлайн: урожай будет синхронизирован', 'warning');
+                    // Keep action in queue, don't rollback visually
                     return;
                 }
 
-                // Reload inventory
-                await loadInventory();
+                // 7. ROLLBACK on error
+                gameFSM.completeAction(actionId); // Remove failed action from queue
+                const prevState = gameFSM.rollback();
 
-                const harvestQty = result.harvested || 0;
-                plotEl.innerHTML = `<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+${harvestQty} 🍎</div>`;
-            } else {
-                // Old fallback for plots without objectId
-                plotEl.innerHTML = `<div style="color:white;font-size:14px;text-shadow:1px 1px 2px black">+? 🍎</div>`;
-            }
+                if (prevState) {
+                    // Restore inventory
+                    Object.assign(inventory, prevState.inventory);
+                    updateResourcesUI();
 
-            setTimeout(() => {
-                plotEl.innerHTML = '';
-                plotEl.classList.remove('planted');
-                plotEl.classList.add('empty');
-                if (emptyPlotImg) {
-                    plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
+                    // Restore plot state
+                    plots[plotId] = prevPlotState;
+
+                    // Restore visual
+                    plotEl.classList.add('error');
+                    setTimeout(() => {
+                        restorePlotVisual(plotId, prevPlotState);
+                        plotEl.classList.remove('error');
+                    }, 500);
                 }
-                plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null };
-            }, 1000);
+
+                showToast(`Ошибка сбора: ${error.message}`, 'error');
+            }
         }
+
 
         async function showModal(type) {
             const cfg = await api(`/api/configs/ui/${type}`);
