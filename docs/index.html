@@ -199,12 +199,11 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(180deg, #f5f5f5, #e0e0e0);
+            background: transparent;
             padding: 8px 10px 12px;
             display: flex;
             justify-content: space-around;
             align-items: center;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
             z-index: 100;
         }
 
@@ -716,13 +715,13 @@
 
         <!-- Bottom Toolbar -->
         <div class="bottom-toolbar">
-            <div class="toolbar-item" onclick="showModal('warehouse')">
-                <div class="icon">👜</div>
-                <span class="label">Сумка</span>
+            <div class="toolbar-item" id="seed-selector" onclick="openSeedSelector()">
+                <div class="icon" id="selected-seed-icon">🌱</div>
+                <span class="label" id="selected-seed-name">Семена</span>
             </div>
-            <div class="toolbar-item" data-tool="harvest">
-                <div class="icon">🌾</div>
-                <span class="label">Урожай</span>
+            <div class="toolbar-item" onclick="showModal('warehouse')">
+                <div class="icon">📦</div>
+                <span class="label">Склад</span>
             </div>
             <div class="toolbar-item" onclick="showModal('shop')">
                 <div class="icon">🛒</div>
@@ -795,6 +794,7 @@
         const initData = tg?.initData || '';
         let inventory = {}; // {seed_tomato: 5, item_wheat: 10, silver: 1000}
         let userId = tg?.initDataUnsafe?.user?.id || 0;
+        let selectedSeed = null; // Currently selected seed for quick planting
 
         async function gql(query, variables = {}) {
             try {
@@ -1062,6 +1062,9 @@
             configs = await api('/api/configs');
             const plotCfg = await api('/api/configs/plots/plot');
 
+            // Load crops config for quick seed selection
+            CONFIGS.crops = await api('/api/configs/crops');
+
             // Load user inventory from database
             await loadInventory();
 
@@ -1265,11 +1268,64 @@
                 return;
             }
 
-            // Empty plot with plant tool - show crop selector
+            // Empty plot - plant selected seed or show selector
             if (plot.state === 'empty') {
-                await showCropSelector(id);
+                if (selectedSeed && (inventory[`seed_${selectedSeed}`] || 0) > 0) {
+                    // Plant selected seed directly
+                    await plantCrop(id, selectedSeed);
+                } else {
+                    // No seed selected or out of seeds - show selector
+                    await showCropSelector(id);
+                }
             }
         }
+
+        // Open seed selector modal to choose which seed to use for quick planting
+        async function openSeedSelector() {
+            const crops = await api('/api/configs/crops');
+            document.getElementById('modal-title').textContent = 'Выберите семена';
+            document.getElementById('modal-footer').style.display = 'none';
+
+            let html = '<div class="shop-grid">';
+            for (const [code, c] of Object.entries(crops || {})) {
+                const seedCount = inventory[`seed_${code}`] || 0;
+                const seedImg = c.stages?.seed?.image;
+                const iconHtml = seedImg ? `<img src="../deno/${seedImg}" style="width:40px;height:40px">` : '🌱';
+                const isSelected = selectedSeed === code;
+                const style = isSelected ? 'border: 2px solid #4CAF50; background: rgba(76,175,80,0.2);' : '';
+
+                html += `<div class="shop-item" style="${style}" onclick="selectSeed('${code}')">
+                    ${seedCount > 0 ? `<span class="shop-item-qty">${seedCount}</span>` : ''}
+                    <div class="shop-item-icon">${iconHtml}</div>
+                    <div class="shop-item-name">${text(c.name)}</div>
+                    <div class="shop-item-price">${seedCount} шт</div>
+                </div>`;
+            }
+            html += '</div>';
+
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        // Select a seed for quick planting
+        function selectSeed(cropCode) {
+            selectedSeed = cropCode;
+            const crops = CONFIGS?.crops || {};
+            const crop = crops[cropCode];
+
+            // Update toolbar button
+            const seedIcon = document.getElementById('selected-seed-icon');
+            const seedName = document.getElementById('selected-seed-name');
+            if (crop) {
+                const img = crop.stages?.seed?.image;
+                seedIcon.innerHTML = img ? `<img src="../deno/${img}" style="width:28px;height:28px">` : '🌱';
+                seedName.textContent = text(crop.name);
+            }
+
+            closeModal();
+        }
+
+        let CONFIGS = {}; // Will be populated on init
 
         async function showCropSelector(plotId) {
             const crops = await api('/api/configs/crops');
