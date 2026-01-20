@@ -1228,7 +1228,11 @@
 
                 // Update plot state
                 // Extract yield amount from params for optimistic harvest display
-                const yieldAmount = parseInt(params.yield) || cropCfg.products?.[0]?.yield?.[0] || 2;
+                const yieldFromParams = params.yield ? parseInt(params.yield) : null;
+                const yieldFromConfig = cropCfg.products?.[0]?.yield?.[0] || 2;
+                const yieldAmount = yieldFromParams || yieldFromConfig;
+
+                console.log(`[DB] Plot ${plotId}: crop=${cropCode}, yieldFromParams=${yieldFromParams}, yieldFromConfig=${yieldFromConfig}, final=${yieldAmount}, params=`, params);
 
                 plots[plotId] = {
                     state: isReady ? 'ready' : 'planted',
@@ -1751,18 +1755,31 @@
                 });
                 const result = await response.json();
 
+                // Handle server errors (except withered which has special handling)
                 if (result.error && result.error !== 'Withered') {
                     throw new Error(result.error);
                 }
 
-                // 6. SUCCESS - Complete the action and adjust if needed
+                // 6. SUCCESS - Complete the action
                 gameFSM.completeAction(actionId);
 
+                // Get actual yield from server
+                const actualYield = result.harvested ?? yieldAmount;
+
+                // Handle withered crops - already visually cleared, just adjust inventory
+                if (result.error === 'Withered') {
+                    console.log(`[HARVEST] Crop withered, adjusting inventory`);
+                    // Remove the optimistically added items (crop is worthless)
+                    inventory[itemKey] = Math.max(0, (inventory[itemKey] || 0) - yieldAmount);
+                    updateResourcesUI();
+                    showToast('Урожай увял! 🥀', 'warning');
+                    return;
+                }
+
                 // Adjust inventory if server value differs from prediction
-                const actualYield = result.harvested || 0;
                 if (actualYield !== yieldAmount) {
                     const diff = actualYield - yieldAmount;
-                    inventory[itemKey] = (inventory[itemKey] || 0) + diff;
+                    inventory[itemKey] = Math.max(0, (inventory[itemKey] || 0) + diff);
                     updateResourcesUI();
                     console.log(`[HARVEST] Adjusted yield: predicted ${yieldAmount}, actual ${actualYield}`);
                 }
