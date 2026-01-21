@@ -1766,33 +1766,64 @@
 
             const emptyPlotImg = CONFIGS.plots?.plot?.stages?.empty?.image;
 
-            // Show clearing animation
+            // Save previous state for rollback
+            const prevPlotState = JSON.parse(JSON.stringify(plot));
+            const prevHtml = plotEl.innerHTML;
+            const prevFilter = plotEl.style.filter;
+
+            // Show clearing animation (optimistic)
             plotEl.innerHTML = `<div class="harvest-popup" style="background: linear-gradient(135deg, rgba(139, 69, 19, 0.95), rgba(101, 67, 33, 0.95));">🗑️ Убрано</div>`;
+            plotEl.style.filter = '';
 
             // Try to delete from server (if objectId exists)
+            let success = true;
+            let errorMessage = '';
+
             if (plot?.objectId) {
                 try {
-                    await fetch(`${API_URL}/api/harvest?id=${plot.objectId}`, {
+                    const response = await fetch(`${API_URL}/api/harvest?id=${plot.objectId}`, {
                         headers: { 'Authorization': tg?.initData || '' }
                     });
+                    const result = await response.json();
+
+                    // Check for errors (Withered is OK - expected response)
+                    if (result.error && result.error !== 'Withered') {
+                        success = false;
+                        errorMessage = result.error;
+                    }
                 } catch (e) {
                     console.log('[CLEAR] Error deleting withered crop:', e);
+                    success = false;
+                    errorMessage = e.message || 'Ошибка сети';
                 }
             }
 
-            // Clear plot visually
-            setTimeout(() => {
-                plotEl.innerHTML = '';
-                plotEl.classList.remove('planted');
-                plotEl.classList.add('empty');
-                plotEl.style.filter = ''; // Remove grayscale
-                if (emptyPlotImg) {
-                    plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
-                }
-                plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null };
-            }, 800);
+            if (success) {
+                // Clear plot visually
+                setTimeout(() => {
+                    plotEl.innerHTML = '';
+                    plotEl.classList.remove('planted');
+                    plotEl.classList.add('empty');
+                    plotEl.style.filter = '';
+                    if (emptyPlotImg) {
+                        plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
+                    }
+                    plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null };
+                }, 800);
 
-            showToast('Увядший урожай убран', 'success');
+                showToast('Увядший урожай убран', 'success');
+            } else {
+                // Rollback on error
+                plotEl.classList.add('error');
+                setTimeout(() => {
+                    plotEl.innerHTML = prevHtml;
+                    plotEl.style.filter = prevFilter;
+                    plotEl.classList.remove('error');
+                    plots[plotId] = prevPlotState;
+                }, 500);
+
+                showToast(`Ошибка: ${errorMessage}`, 'error');
+            }
         }
 
         // Open seed selector modal to choose which seed to use for quick planting
