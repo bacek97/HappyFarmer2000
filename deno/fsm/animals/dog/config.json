@@ -1,13 +1,13 @@
 {
-    "code": "sheep",
+    "code": "dog",
     "name": {
-        "en": "Sheep",
-        "ru": "Овца"
+        "en": "Dog",
+        "ru": "Собака"
     },
-    "icon": "🐑",
+    "icon": "🐕",
     "description": {
-        "en": "Produces wool and mutton",
-        "ru": "Даёт шерсть и баранину"
+        "en": "Guard dog for your farm",
+        "ru": "Охранный пёс для вашей фермы"
     },
     "buy_silver": 300,
     "feed_interval": 5400,
@@ -16,8 +16,12 @@
     "exp": 10,
     "level": 3,
     "position": {
-        "x": -350,
-        "y": -20
+        "x": -280,
+        "y": -150
+    },
+    "display": {
+        "type": "video",
+        "video": "fsm/animals/dog/dog.mp4"
     },
     "stages": {
         "hungry": {
@@ -25,51 +29,56 @@
                 "en": "Hungry",
                 "ru": "Голодный"
             },
-            "image": "/images/animals/sheep/hungry.png"
+            "image": "/images/animals/dog/hungry.png"
         },
         "fed": {
             "messages": {
                 "en": "Fed",
                 "ru": "Сытый"
             },
-            "image": "/images/animals/sheep/fed.png"
+            "image": "/images/animals/dog/fed.png"
         },
         "ready": {
             "messages": {
                 "en": "Ready",
                 "ru": "Готов"
             },
-            "image": "/images/animals/sheep/ready.png"
+            "image": "/images/animals/dog/ready.png"
         },
         "sick": {
             "messages": {
                 "en": "Sick",
                 "ru": "Болен"
             },
-            "image": "/images/animals/sheep/sick.png"
+            "image": "/images/animals/dog/sick.png"
         }
     },
     "products": [
         {
-            "code": "wool",
+            "code": "guard_duty",
             "name": {
-                "en": "Wool",
-                "ru": "Шерсть"
+                "en": "Guard Duty",
+                "ru": "Охрана"
             },
             "type": "renewable",
             "produce_time": 7200,
             "count": 1,
-            "sell_silver": 30
+            "sell_silver": 0,
+            "bonus": {
+                "type": "protection",
+                "value": 10
+            }
         },
         {
-            "code": "mutton",
+            "code": "dog_bone",
             "name": {
-                "en": "Mutton",
-                "ru": "Баранина"
+                "en": "Bone",
+                "ru": "Кость"
             },
-            "type": "terminal",
-            "count": 3,
-            "sell_silver": 80
+            "type": "renewable",
+            "produce_time": 3600,
+            "count": 1,
+            "sell_silver": 15
         }
     ]
 }

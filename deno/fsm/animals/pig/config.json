@@ -4,6 +4,7 @@
         "en": "Pig",
         "ru": "Свинья"
     },
+    "icon": "🐷",
     "description": {
         "en": "Produces bacon and pork",
         "ru": "Даёт бекон и свинину"
@@ -14,6 +15,10 @@
     "cure_price": 40,
     "exp": 20,
     "level": 7,
+    "position": {
+        "x": -210,
+        "y": -100
+    },
     "stages": {
         "hungry": {
             "messages": {

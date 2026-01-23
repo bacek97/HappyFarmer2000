@@ -371,6 +371,80 @@
             font-weight: bold;
         }
 
+        /* Animals Container */
+        #animals-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .animal-object {
+            position: absolute;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .animal-object:hover {
+            transform: scale(1.1);
+            filter: brightness(1.15);
+        }
+
+        .animal-object .animal-icon {
+            filter: drop-shadow(3px 5px 8px rgba(0, 0, 0, 0.5));
+        }
+
+        .animal-object .animal-icon img,
+        .animal-object .animal-icon video {
+            width: 100px;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .animal-object .animal-icon video {
+            object-fit: cover;
+        }
+
+        .animal-object .animal-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.9), rgba(101, 67, 33, 0.9));
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            white-space: nowrap;
+            font-weight: bold;
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .animal-object .animal-status {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .animal-object .animal-status.hungry {
+            background: #FF9800;
+        }
+
+        .animal-object .animal-status.sick {
+            background: #F44336;
+        }
+
         /* Modal */
         .modal {
             position: fixed;
@@ -813,6 +887,8 @@
         <div id="game-world">
             <!-- Factories/Buildings layer (behind plots) -->
             <div id="factories-layer"></div>
+            <!-- Animals layer -->
+            <div id="animals-layer"></div>
             <!-- Farm Grid (in front) -->
             <div class="farm-container">
                 <div class="farm-grid" id="farm-grid"></div>
@@ -1543,6 +1619,9 @@
             // Load map objects (factories) FIRST so they appear behind plots
             await loadMapObjects();
 
+            // Load animals from API and display them
+            await loadAnimals();
+
             // Create plots
             const grid = document.getElementById('farm-grid');
             const emptyPlotImg = plotCfg?.stages?.empty?.image;
@@ -1634,6 +1713,155 @@
                 factoriesLayer.appendChild(obj);
             }
         }
+
+        // ===== Animals Display =====
+        async function loadAnimals() {
+            const animalsLayer = document.getElementById('animals-layer');
+            if (!animalsLayer) return;
+
+            // Fetch all animal configs from API
+            const animals = await api('/api/configs/animals');
+            if (!animals) {
+                console.log('[ANIMALS] No animals config found');
+                return;
+            }
+
+            console.log('[ANIMALS] Loaded configs:', Object.keys(animals));
+
+            for (const [code, cfg] of Object.entries(animals)) {
+                // Position must be defined in config, skip if not
+                if (!cfg.position) {
+                    console.warn(`[ANIMALS] Skipping ${code} - no position defined in config`);
+                    continue;
+                }
+                const position = cfg.position;
+
+                const animalEl = document.createElement('div');
+                animalEl.className = 'animal-object';
+                animalEl.dataset.code = code;
+                animalEl.style.left = '50%';
+                animalEl.style.top = '50%';
+                animalEl.style.transform = `translate(${position.x}px, ${position.y}px)`;
+
+                // Check if animal has video display
+                let iconHtml = '';
+                if (cfg.display?.type === 'video' && cfg.display?.video) {
+                    // Use video element for display
+                    iconHtml = `
+                        <video autoplay loop muted playsinline style="width:100px;height:auto;">
+                            <source src="../deno/${cfg.display.video}" type="video/mp4">
+                        </video>
+                    `;
+                } else {
+                    // Use image from stages
+                    const stageImage = cfg.stages?.fed?.image || cfg.stages?.ready?.image || cfg.stages?.hungry?.image;
+                    if (stageImage) {
+                        iconHtml = `<img src="../deno/${stageImage}" alt="${text(cfg.name)}" style="width:80px;height:auto;">`;
+                    } else {
+                        // Fallback to icon from config or generic animal emoji
+                        const emoji = cfg.icon || '�';
+                        iconHtml = `<span style="font-size:60px">${emoji}</span>`;
+                    }
+                }
+
+                // Default status indicator (can be enhanced with actual game state)
+                const statusClass = '';
+                const statusIcon = '😊';
+
+                animalEl.innerHTML = `
+                    <div class="animal-icon">${iconHtml}</div>
+                    <div class="animal-label">${text(cfg.name)}</div>
+                    <div class="animal-status ${statusClass}">${statusIcon}</div>
+                `;
+
+                animalEl.onclick = () => showAnimalModal(code, cfg);
+                animalsLayer.appendChild(animalEl);
+            }
+        }
+
+        // Show modal for animal details
+        async function showAnimalModal(code, cfg) {
+            document.getElementById('modal-title').textContent = text(cfg.name);
+            document.getElementById('modal-footer').style.display = 'none';
+
+            let html = `<div style="text-align:center; padding:20px;">`;
+
+            // Display video or image
+            if (cfg.display?.type === 'video' && cfg.display?.video) {
+                html += `
+                    <video autoplay loop muted playsinline style="width:200px;height:auto;border-radius:12px;margin-bottom:15px;">
+                        <source src="../deno/${cfg.display.video}" type="video/mp4">
+                    </video>
+                `;
+            } else {
+                const stageImage = cfg.stages?.fed?.image || cfg.stages?.ready?.image;
+                if (stageImage) {
+                    html += `<img src="../deno/${stageImage}" style="width:150px;height:auto;margin-bottom:15px;">`;
+                }
+            }
+
+            html += `
+                <p style="color:#5D4037;margin-bottom:15px;">${text(cfg.description)}</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;background:rgba(255,255,255,0.5);padding:15px;border-radius:10px;">
+                    <div><b>💰 Цена:</b> ${cfg.buy_silver} 🪙</div>
+                    <div><b>⭐ Опыт:</b> ${cfg.exp}</div>
+                    <div><b>📊 Уровень:</b> ${cfg.level}</div>
+                    <div><b>🍖 Кормить:</b> каждые ${Math.floor(cfg.feed_interval / 3600)}ч</div>
+                </div>
+            `;
+
+            // Products
+            if (cfg.products && cfg.products.length > 0) {
+                html += `<div style="margin-top:15px;"><b>📦 Продукция:</b></div>`;
+                html += `<div class="shop-grid" style="margin-top:10px;">`;
+                for (const product of cfg.products) {
+                    const productIcon = product.code.includes('egg') ? '🥚' :
+                        product.code.includes('milk') ? '🥛' :
+                            product.code.includes('meat') ? '🥩' :
+                                product.code.includes('bone') ? '🦴' :
+                                    product.code.includes('guard') ? '🛡️' : '📦';
+                    html += `
+                        <div class="shop-item">
+                            <div class="shop-item-icon">${productIcon}</div>
+                            <div class="shop-item-name">${text(product.name)}</div>
+                            <div class="shop-item-price">${product.sell_silver > 0 ? product.sell_silver + ' 🪙' : 'Бонус'}</div>
+                            ${product.produce_time ? `<div style="font-size:10px;color:#888">⏱ ${Math.floor(product.produce_time / 60)}мин</div>` : ''}
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+            }
+
+            // Actions
+            html += `
+                <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
+                    <button onclick="feedAnimal('${code}')" style="padding:10px 20px;background:linear-gradient(135deg, #4CAF50, #388E3C);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">
+                        🍖 Покормить
+                    </button>
+                    <button onclick="collectProduct('${code}')" style="padding:10px 20px;background:linear-gradient(135deg, #FF9800, #F57C00);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">
+                        📦 Собрать
+                    </button>
+                </div>
+            `;
+
+            html += `</div>`;
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        // Placeholder functions for animal interactions
+        async function feedAnimal(code) {
+            showToast(`${code} покормлен! 🍖`, 'success');
+            // TODO: Implement actual feeding logic with server API
+        }
+
+        async function collectProduct(code) {
+            showToast(`Продукция ${code} собрана! 📦`, 'success');
+            // TODO: Implement actual collection logic with server API
+        }
+
+        window.feedAnimal = feedAnimal;
+        window.collectProduct = collectProduct;
 
         async function showFactoryModal(code, cfg) {
             document.getElementById('modal-title').textContent = text(cfg.name);

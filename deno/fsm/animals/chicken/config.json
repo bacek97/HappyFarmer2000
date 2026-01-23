@@ -4,6 +4,7 @@
         "en": "Chicken",
         "ru": "Курица"
     },
+    "icon": "🐔",
     "description": {
         "en": "Lays eggs",
         "ru": "Несёт яйца"
@@ -14,6 +15,10 @@
     "cure_price": 20,
     "exp": 5,
     "level": 1,
+    "position": {
+        "x": -350,
+        "y": -100
+    },
     "stages": {
         "hungry": {
             "messages": {
