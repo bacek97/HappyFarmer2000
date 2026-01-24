@@ -63,9 +63,10 @@ export function getCropState(
         }
     }
 
-    const witherTime = totalTime + config.wither_time;
+    // Handle wither_time = 0 as "never withers"
+    const witherTime = config.wither_time > 0 ? totalTime + config.wither_time : Infinity;
 
-    if (elapsed > witherTime) {
+    if (config.wither_time > 0 && elapsed > witherTime) {
         return { stage: config.stage_times.length, isReady: false, isWithered: true };
     }
 
@@ -117,10 +118,15 @@ export function generateCropCheckpoints(config: CropConfig): Checkpoint[] {
         }
     }
 
+    // Handle wither_time = 0 as "never withers" (use very large deadline)
+    const harvestDeadline = config.wither_time > 0
+        ? currentTime + config.wither_time
+        : currentTime + 999999999; // effectively infinite
+
     checkpoints.push({
         time_offset: currentTime,
         action: 'harvest',
-        deadline: currentTime + config.wither_time
+        deadline: harvestDeadline
     });
 
     return checkpoints;

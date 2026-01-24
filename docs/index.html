@@ -1428,7 +1428,6 @@
             let timeSum = 0;
             let nextStageTime = null;
             let isLastStage = false;
-            const stages = ['seed', 'sprout', 'growing', 'ripe'];
 
             // Find time to next stage
             for (let i = 0; i < stageTimes.length; i++) {
@@ -1488,24 +1487,33 @@
             const elapsed = (Date.now() - plot.plantedAt) / 1000;
             const totalGrowTime = stageTimes.reduce((a, b) => a + b, 0);
 
-            const stages = ['seed', 'sprout', 'growing', 'ripe'];
-            let timeSum = 0;
-            let currentStage = 'seed';
+            // Dynamic stages: read from config, filter out 'withered', ensure proper order
+            const allStageKeys = Object.keys(cropCfg.stages || {});
+            // Build stages array: start with 'seed', then intermediate stages, end with 'ripe'
+            const stages = allStageKeys.filter(s => s !== 'withered' && s !== 'seed' && s !== 'ripe');
+            stages.unshift('seed'); // Add seed at the beginning
+            stages.push('ripe');    // Add ripe at the end
 
+            let timeSum = 0;
+            let currentStageIndex = 0;
+
+            // Determine current stage based on elapsed time
             for (let i = 0; i < stageTimes.length; i++) {
                 timeSum += stageTimes[i];
-                if (elapsed >= timeSum && i < stages.length - 1) {
-                    currentStage = stages[i + 1];
+                if (elapsed >= timeSum && i + 1 < stages.length) {
+                    currentStageIndex = i + 1;
                 }
             }
+
+            let currentStage = stages[currentStageIndex] || 'seed';
 
             if (elapsed >= totalGrowTime) {
                 currentStage = 'ripe';
                 plot.state = 'ready';
             }
 
-            // Check for wither
-            if (elapsed >= totalGrowTime + witherTime) {
+            // Check for wither (only if wither_time > 0)
+            if (witherTime > 0 && elapsed >= totalGrowTime + witherTime) {
                 currentStage = 'withered';
                 plot.state = 'withered';
             }
@@ -1515,13 +1523,18 @@
                 plot.stage = currentStage;
                 const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
                 if (plotEl) {
-                    const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓', withered: '💀' };
-                    const img = cropCfg?.stages?.[currentStage]?.image;
+                    // Dynamic stage indicator: X/N format
+                    const stageIndex = stages.indexOf(currentStage);
+                    const totalStages = stages.length;
+                    const isRipe = currentStage === 'ripe';
                     const isWithered = currentStage === 'withered';
+                    const stageLabel = isWithered ? '💀' : (isRipe ? '✓' : `${stageIndex + 1}/${totalStages}`);
+
+                    const img = cropCfg?.stages?.[currentStage]?.image;
                     const html = img
                         ? `<img src="../deno/${img}" class="crop-img">`
-                        : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (currentStage === 'ripe' ? '🍎' : '🌱')}</div>`;
-                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage]}</span>`;
+                        : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (isRipe ? '🍎' : '🌱')}</div>`;
+                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageLabel}</span>`;
 
                     if (isWithered) {
                         plotEl.style.filter = 'grayscale(60%) brightness(0.8)';

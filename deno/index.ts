@@ -433,7 +433,11 @@ function generateCropCheckpoints(config: any): CropCheckpoint[] {
   const checkpoints: CropCheckpoint[] = [];
   let currentTime = 0;
   const stageTimes = config.stage_times || [30, 60, 90];
-  const stages = ['stage_seed', 'stage_sprout', 'stage_growing', 'stage_ripe'];
+
+  // Dynamic stages: read from config, filter out 'withered', ensure proper order
+  const allStageKeys = Object.keys(config.stages || {});
+  const intermediateStages = allStageKeys.filter(s => s !== 'withered' && s !== 'seed' && s !== 'ripe');
+  const stages = ['seed', ...intermediateStages, 'ripe'].map(s => `stage_${s}`);
 
   // Add stage transitions
   for (let i = 0; i < stageTimes.length; i++) {
@@ -445,11 +449,12 @@ function generateCropCheckpoints(config: any): CropCheckpoint[] {
     });
   }
 
-  // Add harvest checkpoint with wither deadline
+  // Add harvest checkpoint with wither deadline (only if wither_time > 0)
+  const witherTime = config.wither_time || 0;
   checkpoints.push({
     time_offset: currentTime,
     action: 'harvest',
-    deadline: currentTime + (config.wither_time || 1800),
+    deadline: witherTime > 0 ? currentTime + witherTime : null,
   });
 
   // Random events (water, pest)
@@ -473,6 +478,7 @@ function generateCropCheckpoints(config: any): CropCheckpoint[] {
 
   return checkpoints;
 }
+
 
 async function handlePlantCrop(req: Request): Promise<Response> {
   const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
