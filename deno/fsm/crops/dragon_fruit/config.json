@@ -1,0 +1,104 @@
+{
+    "code": "dragon_fruit",
+    "name": {
+        "en": "Dragon Fruit",
+        "ru": "Питахайя"
+    },
+    "description": {
+        "en": "Exotic tropical fruit with vibrant pink skin",
+        "ru": "Экзотический тропический фрукт с яркой розовой кожурой"
+    },
+    "buy_silver": 120,
+    "exp": 60,
+    "level": 8,
+    "stage_times": [
+        180,
+        240,
+        300,
+        360,
+        420
+    ],
+    "wither_time": 7200,
+    "pest_chance": 0.08,
+    "water_chance": 0.25,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "fsm/crops/dragon_fruit/seed_placeholder.png"
+        },
+        "stage_2": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "fsm/crops/dragon_fruit/stage_2.png"
+        },
+        "stage_3": {
+            "messages": {
+                "en": "Young cactus",
+                "ru": "Молодой кактус"
+            },
+            "image": "fsm/crops/dragon_fruit/stage_3.png"
+        },
+        "stage_4": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "fsm/crops/dragon_fruit/stage_4.png"
+        },
+        "stage_6": {
+            "messages": {
+                "en": "Budding",
+                "ru": "Бутоны"
+            },
+            "image": "fsm/crops/dragon_fruit/stage_6.png"
+        },
+        "stage_7": {
+            "messages": {
+                "en": "Flowering",
+                "ru": "Цветение"
+            },
+            "image": "fsm/crops/dragon_fruit/stage_7.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "fsm/crops/dragon_fruit/stage_8.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "fsm/crops/dragon_fruit/withered.png"
+        }
+    },
+    "market_icon": "fsm/crops/dragon_fruit/market_icon.png",
+    "social": {
+        "steal_percent": 20,
+        "steals_per_neighbor": 1,
+        "waters_per_neighbor": 3,
+        "water_exp": 15,
+        "remove_pest_exp": 10
+    },
+    "products": [
+        {
+            "code": "dragon_fruit",
+            "name": {
+                "en": "Dragon Fruit",
+                "ru": "Питахайя"
+            },
+            "yield": [
+                2,
+                4
+            ],
+            "sell_silver": 200
+        }
+    ]
+}
