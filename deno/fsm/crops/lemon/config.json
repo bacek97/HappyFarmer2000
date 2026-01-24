@@ -1,0 +1,119 @@
+{
+    "code": "lemon",
+    "name": {
+        "en": "Lemon",
+        "ru": "Лимон"
+    },
+    "description": {
+        "en": "Juicy citrus fruit",
+        "ru": "Сочный цитрусовый фрукт"
+    },
+    "buy_silver": 80,
+    "exp": 40,
+    "level": 5,
+    "stage_times": [
+        120,
+        180,
+        240,
+        300,
+        360,
+        420,
+        480
+    ],
+    "wither_time": 0,
+    "pest_chance": 0.05,
+    "water_chance": 0.15,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "fsm/crops/lemon/seed_placeholder.png"
+        },
+        "stage_1": {
+            "messages": {
+                "en": "Seedling",
+                "ru": "Росток"
+            },
+            "image": "fsm/crops/lemon/stage_1.png"
+        },
+        "stage_2": {
+            "messages": {
+                "en": "Young sprout",
+                "ru": "Молодой побег"
+            },
+            "image": "fsm/crops/lemon/stage_2.png"
+        },
+        "stage_3": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "fsm/crops/lemon/stage_3.png"
+        },
+        "stage_4": {
+            "messages": {
+                "en": "Small tree",
+                "ru": "Маленькое дерево"
+            },
+            "image": "fsm/crops/lemon/stage_4.png"
+        },
+        "stage_5": {
+            "messages": {
+                "en": "Budding",
+                "ru": "Бутоны"
+            },
+            "image": "fsm/crops/lemon/stage_5.png"
+        },
+        "stage_6": {
+            "messages": {
+                "en": "Flowering",
+                "ru": "Цветение"
+            },
+            "image": "fsm/crops/lemon/stage_6.png"
+        },
+        "stage_7": {
+            "messages": {
+                "en": "Fruiting",
+                "ru": "Плодоношение"
+            },
+            "image": "fsm/crops/lemon/stage_7.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "fsm/crops/lemon/stage_8.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "fsm/crops/lemon/withered_placeholder.png"
+        }
+    },
+    "social": {
+        "steal_percent": 25,
+        "steals_per_neighbor": 1,
+        "waters_per_neighbor": 3,
+        "water_exp": 12,
+        "remove_pest_exp": 8
+    },
+    "products": [
+        {
+            "code": "lemon",
+            "name": {
+                "en": "Lemon",
+                "ru": "Лимон"
+            },
+            "yield": [
+                2,
+                5
+            ],
+            "sell_silver": 150
+        }
+    ]
+}
