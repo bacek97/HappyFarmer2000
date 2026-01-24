@@ -22,13 +22,6 @@
     "pest_chance": 0.08,
     "water_chance": 0.25,
     "stages": {
-        "seed": {
-            "messages": {
-                "en": "Seed",
-                "ru": "Семя"
-            },
-            "image": "fsm/crops/dragon_fruit/seed_placeholder.png"
-        },
         "stage_2": {
             "messages": {
                 "en": "Sprout",
