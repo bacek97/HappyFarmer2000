@@ -16,8 +16,8 @@
     "exp": 15,
     "level": 5,
     "position": {
-        "x": -280,
-        "y": -50
+        "x": 160,
+        "y": -60
     },
     "stages": {
         "hungry": {
