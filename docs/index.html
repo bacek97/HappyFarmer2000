@@ -1987,6 +1987,12 @@
                 return;
             }
 
+            // Growing crop - show stages modal
+            if (plot.state === 'planted' && plot.config) {
+                showCropGrowthModal(id, plot);
+                return;
+            }
+
             // Empty plot - plant selected seed or show selector
             if (plot.state === 'empty') {
                 if (selectedSeed && (inventory[`seed_${selectedSeed}`] || 0) > 0) {
@@ -1998,6 +2004,140 @@
                 }
             }
         }
+
+        // Show modal with crop growth stages information
+        function showCropGrowthModal(plotId, plot) {
+            const cropCfg = plot.config;
+            const stageTimes = cropCfg.stage_times || [];
+            const elapsed = (Date.now() - plot.plantedAt) / 1000;
+            const totalGrowTime = stageTimes.reduce((a, b) => a + b, 0);
+            const witherTime = cropCfg.wither_time || 0;
+
+            // Get dynamic stages from config
+            const allStageKeys = Object.keys(cropCfg.stages || {});
+            const intermediateStages = allStageKeys.filter(s => s !== 'withered' && s !== 'seed' && s !== 'ripe');
+            const stages = allStageKeys.includes('seed') ? ['seed', ...intermediateStages, 'ripe'] : [...intermediateStages, 'ripe'];
+
+            // Calculate current stage
+            let timeSum = 0;
+            let currentStageIndex = 0;
+            for (let i = 0; i < stageTimes.length; i++) {
+                timeSum += stageTimes[i];
+                if (elapsed >= timeSum && i + 1 < stages.length) {
+                    currentStageIndex = i + 1;
+                }
+            }
+            if (elapsed >= totalGrowTime) {
+                currentStageIndex = stages.length - 1;
+            }
+
+            document.getElementById('modal-title').textContent = text(cropCfg.name);
+            document.getElementById('modal-footer').style.display = 'none';
+
+            let html = `<div style="padding: 15px;">`;
+
+            // Current crop image
+            const currentStage = stages[currentStageIndex];
+            const currentImg = cropCfg.stages?.[currentStage]?.image;
+            if (currentImg) {
+                html += `<div style="text-align:center;margin-bottom:15px;">
+                    <img src="../deno/${currentImg}" style="width:120px;height:auto;">
+                </div>`;
+            }
+
+            // Description
+            html += `<p style="color:#5D4037;margin-bottom:15px;text-align:center;">${text(cropCfg.description)}</p>`;
+
+            // Progress bar
+            const progress = Math.min(100, (elapsed / totalGrowTime) * 100);
+            html += `<div style="background:#ddd;border-radius:10px;height:20px;margin-bottom:20px;overflow:hidden;">
+                <div style="background:linear-gradient(90deg, #4CAF50, #8BC34A);height:100%;width:${progress}%;transition:width 0.3s;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">
+                    ${Math.floor(progress)}%
+                </div>
+            </div>`;
+
+            // Stages timeline
+            html += `<div style="font-weight:bold;margin-bottom:10px;color:#333;">📊 Стадии роста:</div>`;
+            html += `<div style="display:flex;flex-direction:column;gap:8px;">`;
+
+            let accumulatedTime = 0;
+            for (let i = 0; i < stages.length; i++) {
+                const stage = stages[i];
+                const stageTime = stageTimes[i] || 0;
+                const stageInfo = cropCfg.stages?.[stage];
+                const stageName = stageInfo?.messages ? text(stageInfo.messages) : stage;
+                const stageImg = stageInfo?.image;
+
+                const isCurrent = i === currentStageIndex;
+                const isPast = i < currentStageIndex;
+                const isFuture = i > currentStageIndex;
+
+                // Calculate time info
+                let timeInfo = '';
+                if (i === 0) {
+                    timeInfo = '0:00';
+                } else if (i < stageTimes.length) {
+                    accumulatedTime += stageTimes[i - 1] || 0;
+                    timeInfo = formatTime(stageTime);
+                } else {
+                    // Ripe stage
+                    timeInfo = '✓ Урожай';
+                }
+
+                // Time remaining for current stage
+                let timeRemaining = '';
+                if (isCurrent && i < stageTimes.length) {
+                    let prevTime = 0;
+                    for (let j = 0; j < i; j++) prevTime += stageTimes[j] || 0;
+                    const stageEnd = prevTime + (stageTimes[i] || 0);
+                    const remaining = stageEnd - elapsed;
+                    if (remaining > 0) {
+                        timeRemaining = `<span style="color:#FF9800;font-size:11px;margin-left:5px;">⏱ ${formatTime(remaining)}</span>`;
+                    }
+                }
+
+                const bgColor = isCurrent ? 'rgba(76, 175, 80, 0.2)' : (isPast ? 'rgba(200, 200, 200, 0.3)' : 'rgba(255, 255, 255, 0.5)');
+                const borderColor = isCurrent ? '#4CAF50' : (isPast ? '#9E9E9E' : '#E0E0E0');
+                const textColor = isPast ? '#9E9E9E' : '#333';
+                const icon = isPast ? '✅' : (isCurrent ? '🌱' : '⏳');
+
+                html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${bgColor};border:2px solid ${borderColor};border-radius:8px;">
+                    <span style="font-size:16px;">${icon}</span>
+                    ${stageImg ? `<img src="../deno/${stageImg}" style="width:35px;height:35px;object-fit:contain;border-radius:4px;">` : ''}
+                    <div style="flex:1;">
+                        <div style="font-weight:bold;color:${textColor};">${stageName}${timeRemaining}</div>
+                        <div style="font-size:11px;color:#888;">${i === stages.length - 1 ? 'Готово к сбору' : `Длительность: ${timeInfo}`}</div>
+                    </div>
+                    <span style="font-size:12px;color:#666;">${i + 1}/${stages.length}</span>
+                </div>`;
+            }
+            html += `</div>`;
+
+            // Wither warning
+            if (witherTime > 0) {
+                html += `<div style="margin-top:15px;padding:10px;background:rgba(255, 152, 0, 0.1);border:1px solid #FF9800;border-radius:8px;font-size:12px;color:#E65100;">
+                    ⚠️ Внимание: урожай увянет через <b>${formatTime(witherTime)}</b> после созревания!
+                </div>`;
+            } else {
+                html += `<div style="margin-top:15px;padding:10px;background:rgba(76, 175, 80, 0.1);border:1px solid #4CAF50;border-radius:8px;font-size:12px;color:#2E7D32;">
+                    ✅ Это растение не увядает — можно собрать в любое время!
+                </div>`;
+            }
+
+            // Stats
+            html += `<div style="margin-top:15px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">💰 Продажа: ${cropCfg.products?.[0]?.sell_silver || 0} 🪙</div>
+                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">⭐ Опыт: ${cropCfg.exp || 0}</div>
+                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">📦 Урожай: ${cropCfg.products?.[0]?.yield?.join('-') || '?'} шт</div>
+                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">⏰ Общее время: ${formatTime(totalGrowTime)}</div>
+            </div>`;
+
+            html += `</div>`;
+
+            document.getElementById('modal-body').innerHTML = html;
+            document.getElementById('modal').classList.add('active');
+        }
+
 
         // Clear a withered crop from the plot
         async function clearWitheredCrop(plotId) {
