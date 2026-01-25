@@ -1,0 +1,150 @@
+{
+    "code": "chocolate",
+    "name": {
+        "en": "Chocolate Factory",
+        "ru": "Шоколадная фабрика"
+    },
+    "description": {
+        "en": "Produce chocolate, curd snacks and yogurt",
+        "ru": "Производите шоколад, творожные сырки и йогурт"
+    },
+    "buy_silver": 2500,
+    "build_time": 7200,
+    "slots": 3,
+    "exp": 100,
+    "level": 12,
+    "position": {
+        "x": 75,
+        "y": 15
+    },
+    "size": {
+        "width": 85,
+        "height": 100
+    },
+    "stages": {
+        "building": {
+            "messages": {
+                "en": "Building",
+                "ru": "Строится"
+            },
+            "image": "fsm/factories/chocolate/stage_1.png"
+        },
+        "idle": {
+            "messages": {
+                "en": "Idle",
+                "ru": "Простой"
+            },
+            "image": "fsm/factories/chocolate/stage_1.png"
+        },
+        "processing": {
+            "messages": {
+                "en": "Processing",
+                "ru": "Работает"
+            },
+            "image": "fsm/factories/chocolate/stage_1.png"
+        },
+        "ready": {
+            "messages": {
+                "en": "Ready",
+                "ru": "Готово"
+            },
+            "image": "fsm/factories/chocolate/stage_1.png"
+        }
+    },
+    "recipes": [
+        {
+            "code": "vamin_curd_snack",
+            "name": {
+                "en": "VAMIN Curd Snack",
+                "ru": "Творожный сырок ВАМИН"
+            },
+            "inputs": [
+                {
+                    "item": "milk",
+                    "count": 2
+                },
+                {
+                    "item": "sugar",
+                    "count": 1
+                }
+            ],
+            "products": [
+                {
+                    "code": "vamin_curd_snack",
+                    "name": {
+                        "en": "VAMIN Curd Snack",
+                        "ru": "Творожный сырок ВАМИН"
+                    },
+                    "count": 2,
+                    "sell_silver": 85
+                }
+            ],
+            "time": 480,
+            "exp": 18
+        },
+        {
+            "code": "milka_chocolate",
+            "name": {
+                "en": "MILKA Chocolate",
+                "ru": "Шоколад MILKA"
+            },
+            "inputs": [
+                {
+                    "item": "cocoa",
+                    "count": 3
+                },
+                {
+                    "item": "milk",
+                    "count": 2
+                },
+                {
+                    "item": "sugar",
+                    "count": 1
+                }
+            ],
+            "products": [
+                {
+                    "code": "milka_chocolate",
+                    "name": {
+                        "en": "MILKA Chocolate",
+                        "ru": "Шоколад MILKA"
+                    },
+                    "count": 1,
+                    "sell_silver": 120
+                }
+            ],
+            "time": 900,
+            "exp": 25
+        },
+        {
+            "code": "chudo_yogurt",
+            "name": {
+                "en": "CHUDO Yogurt",
+                "ru": "Йогурт ЧУДО"
+            },
+            "inputs": [
+                {
+                    "item": "milk",
+                    "count": 3
+                },
+                {
+                    "item": "strawberry",
+                    "count": 2
+                }
+            ],
+            "products": [
+                {
+                    "code": "chudo_yogurt",
+                    "name": {
+                        "en": "CHUDO Yogurt",
+                        "ru": "Йогурт ЧУДО"
+                    },
+                    "count": 2,
+                    "sell_silver": 75
+                }
+            ],
+            "time": 360,
+            "exp": 14
+        }
+    ]
+}
