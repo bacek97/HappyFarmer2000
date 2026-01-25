@@ -6,8 +6,8 @@
     },
     "icon": "🐕",
     "description": {
-        "en": "Guard dog for your farm",
-        "ru": "Охранный пёс для вашей фермы"
+        "en": "Guards your farm from thieves",
+        "ru": "Охраняет ферму от воров"
     },
     "buy_silver": 300,
     "feed_interval": 5400,
@@ -28,57 +28,26 @@
             "messages": {
                 "en": "Hungry",
                 "ru": "Голодный"
-            },
-            "image": "/images/animals/dog/hungry.png"
+            }
         },
         "fed": {
             "messages": {
                 "en": "Fed",
                 "ru": "Сытый"
-            },
-            "image": "/images/animals/dog/fed.png"
-        },
-        "ready": {
-            "messages": {
-                "en": "Ready",
-                "ru": "Готов"
-            },
-            "image": "/images/animals/dog/ready.png"
-        },
-        "sick": {
-            "messages": {
-                "en": "Sick",
-                "ru": "Болен"
-            },
-            "image": "/images/animals/dog/sick.png"
+            }
         }
     },
-    "products": [
-        {
-            "code": "guard_duty",
-            "name": {
-                "en": "Guard Duty",
-                "ru": "Охрана"
-            },
-            "type": "renewable",
-            "produce_time": 7200,
-            "count": 1,
-            "sell_silver": 0,
-            "bonus": {
-                "type": "protection",
-                "value": 10
-            }
-        },
-        {
-            "code": "dog_bone",
-            "name": {
-                "en": "Bone",
-                "ru": "Кость"
-            },
-            "type": "renewable",
-            "produce_time": 3600,
-            "count": 1,
-            "sell_silver": 15
+    "mod": {
+        "type": "guard",
+        "hooks": [
+            "harvest"
+        ],
+        "block_chance_fed": 0.9,
+        "block_chance_hungry": 0.5,
+        "message": {
+            "en": "Dog bit the thief!",
+            "ru": "Собака укусила воришку!"
         }
-    ]
+    },
+    "products": []
 }

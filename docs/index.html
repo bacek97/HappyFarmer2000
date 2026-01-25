@@ -1879,6 +1879,22 @@
         async function showFactoryModal(code, cfg) {
             document.getElementById('modal-title').textContent = text(cfg.name);
             const crops = await api('/api/configs/crops');
+            const animals = await api('/api/configs/animals');
+
+            // Build item name lookup from crops AND animal products
+            const itemNames = {};
+            // Add crops
+            for (const [cropCode, cropCfg] of Object.entries(crops || {})) {
+                itemNames[cropCode] = cropCfg.name;
+            }
+            // Add animal products
+            for (const [animalCode, animalCfg] of Object.entries(animals || {})) {
+                for (const product of animalCfg.products || []) {
+                    if (product.code && product.name) {
+                        itemNames[product.code] = product.name;
+                    }
+                }
+            }
 
             let html = `<p style="margin-bottom:15px;color:#5D4037">${text(cfg.description)}</p>`;
             html += '<div class="shop-grid">';
@@ -1895,8 +1911,7 @@
                     const enough = have >= need;
                     if (!enough) canProduce = false;
 
-                    const cropCfg = crops?.[input.item];
-                    const itemName = text(cropCfg?.name) || input.item;
+                    const itemName = text(itemNames[input.item]) || input.item;
                     const color = enough ? '#4CAF50' : '#F44336';
                     ingredientsHtml += `<div style="font-size:11px;color:${color}">${itemName}: ${have}/${need}</div>`;
                 }

@@ -246,7 +246,7 @@ async function handleCreateInvoice(req: Request): Promise<Response> {
     });
   } catch (e) {
     console.error("Error in handleCreateInvoice:", e);
-    return new Response(JSON.stringify({ message: e.message }), { status: 500 });
+    return new Response(JSON.stringify({ message: (e as Error).message }), { status: 500 });
   }
 }
 
@@ -319,7 +319,9 @@ async function handleTelegramWebhook(req: Request): Promise<Response> {
   return new Response("OK");
 }
 
-// ===== CONFIG SCANNER =====
+// ===== CONFIG & MODULE SCANNER =====
+
+import type { HandlerContext, ModuleHook, PendingHook, RegisteredEndpoint, ModuleAPI, DatabaseAPI } from "./fsm/types.ts";
 
 interface GameConfig {
   code: string;
@@ -334,14 +336,132 @@ interface CategoryConfigs {
 // Dynamic storage - categories discovered at runtime
 const CONFIGS: Record<string, CategoryConfigs> = {};
 
-// FSM modules storage
-const FSM_MODULES: Record<string, Record<string, unknown>> = {};
-const ENDPOINTS: Map<string, { category: string; handler: string; module: Record<string, unknown> }> = new Map();
+// Hook registry - endpoint name -> sorted hooks
+const HOOKS_REGISTRY: Map<string, PendingHook[]> = new Map();
+const PENDING_HOOKS: Map<string, PendingHook[]> = new Map();
+
+// Endpoint registry - path -> endpoint info
+const ENDPOINTS_REGISTRY: Map<string, RegisteredEndpoint> = new Map();
+
+// Module API for FSM modules
+const moduleAPI: ModuleAPI = {
+  registerEndpoint(name: string, handler: (ctx: HandlerContext) => Promise<Response>, moduleName: string) {
+    const path = `/api/${name}`;
+    const pendingHooks = PENDING_HOOKS.get(name) || [];
+    PENDING_HOOKS.delete(name);
+
+    const endpoint: RegisteredEndpoint = {
+      name,
+      path,
+      handler,
+      hooks: [],
+      module: moduleName
+    };
+
+    ENDPOINTS_REGISTRY.set(name, endpoint);
+
+    // Attach pending hooks (will be sorted later)
+    for (const hook of pendingHooks) {
+      endpoint.hooks.push(hook);
+    }
+
+    console.log(`[MOD] ✓ Endpoint '${name}' from ${moduleName} (${pendingHooks.length} hooks attached)`);
+  },
+
+  registerHook(endpointName: string, hook: ModuleHook, moduleName: string) {
+    const pending: PendingHook = { hook, moduleName };
+
+    const endpoint = ENDPOINTS_REGISTRY.get(endpointName);
+    if (endpoint) {
+      endpoint.hooks.push(pending);
+      console.log(`[MOD] ✓ Hook → '${endpointName}' from ${moduleName}`);
+    } else {
+      const queue = PENDING_HOOKS.get(endpointName) || [];
+      queue.push(pending);
+      PENDING_HOOKS.set(endpointName, queue);
+      console.log(`[MOD] ⏳ Hook queued for '${endpointName}' from ${moduleName}`);
+    }
+  },
+
+  configs: CONFIGS
+};
+
+// Topological sort for hooks based on runBefore/runAfter
+function sortHooks(hooks: PendingHook[]): PendingHook[] {
+  if (hooks.length <= 1) return hooks;
+
+  // Build dependency graph
+  const moduleToHook = new Map<string, PendingHook>();
+  for (const h of hooks) {
+    moduleToHook.set(h.moduleName, h);
+  }
+
+  // graph: module -> modules that must come before it
+  const graph = new Map<string, Set<string>>();
+  for (const h of hooks) {
+    graph.set(h.moduleName, new Set());
+  }
+
+  for (const h of hooks) {
+    // runBefore: ["dog"] means this hook runs BEFORE dog
+    // So dog depends on this hook
+    for (const target of h.hook.runBefore || []) {
+      if (graph.has(target)) {
+        graph.get(target)!.add(h.moduleName);
+      }
+    }
+
+    // runAfter: ["eagle"] means this hook runs AFTER eagle
+    // So this hook depends on eagle
+    for (const dep of h.hook.runAfter || []) {
+      if (graph.has(h.moduleName)) {
+        graph.get(h.moduleName)!.add(dep);
+      }
+    }
+  }
+
+  // Kahn's algorithm for topological sort
+  const inDegree = new Map<string, number>();
+  for (const [node, deps] of graph) {
+    inDegree.set(node, deps.size);
+  }
+
+  const queue: string[] = [];
+  for (const [node, degree] of inDegree) {
+    if (degree === 0) queue.push(node);
+  }
+
+  const result: PendingHook[] = [];
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+    const hook = moduleToHook.get(node);
+    if (hook) result.push(hook);
+
+    // Remove this node from dependencies
+    for (const [target, deps] of graph) {
+      if (deps.has(node)) {
+        deps.delete(node);
+        inDegree.set(target, inDegree.get(target)! - 1);
+        if (inDegree.get(target) === 0) {
+          queue.push(target);
+        }
+      }
+    }
+  }
+
+  // If not all hooks sorted (cycle detected), return original order
+  if (result.length !== hooks.length) {
+    console.warn("[MOD] ⚠️ Cycle detected in hook dependencies, using load order");
+    return hooks;
+  }
+
+  return result;
+}
 
 async function scanConfigs() {
   const fsmPath = "./fsm";
 
-  // Scan all category directories in fsm/
+  // First pass: load all configs
   for await (const categoryEntry of Deno.readDir(fsmPath)) {
     if (!categoryEntry.isDirectory) continue;
 
@@ -350,34 +470,50 @@ async function scanConfigs() {
 
     CONFIGS[categoryName] = {};
 
-    // Load FSM.ts if exists
-    const fsmFile = `${categoryPath}/FSM.ts`;
+    // Scan all items in category for config.json
     try {
-      const module = await import(fsmFile);
-      FSM_MODULES[categoryName] = module;
+      for await (const itemEntry of Deno.readDir(categoryPath)) {
+        if (!itemEntry.isDirectory) continue;
 
-      // Register endpoints from ENDPOINTS export
-      if (module.ENDPOINTS) {
-        for (const [handlerName, path] of Object.entries(module.ENDPOINTS)) {
-          const handler = `handle${handlerName.charAt(0) + handlerName.slice(1).toLowerCase().replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`;
-          ENDPOINTS.set(path as string, { category: categoryName, handler, module });
-          console.log(`Endpoint: ${path} -> ${categoryName}.${handler}`);
-        }
+        const configPath = `${categoryPath}/${itemEntry.name}/config.json`;
+        try {
+          const content = await Deno.readTextFile(configPath);
+          const config = JSON.parse(content) as GameConfig;
+          CONFIGS[categoryName][itemEntry.name] = config;
+          console.log(`Loaded: ${categoryName}/${itemEntry.name}`);
+        } catch { /* skip */ }
       }
-    } catch { /* no FSM.ts */ }
+    } catch { /* category has no subdirs */ }
+  }
 
-    // Scan all items in category
-    for await (const itemEntry of Deno.readDir(categoryPath)) {
-      if (!itemEntry.isDirectory) continue;
+  // Second pass: load all FSM modules
+  for await (const categoryEntry of Deno.readDir(fsmPath)) {
+    if (!categoryEntry.isDirectory) continue;
 
-      const configPath = `${categoryPath}/${itemEntry.name}/config.json`;
-      try {
-        const content = await Deno.readTextFile(configPath);
-        const config = JSON.parse(content) as GameConfig;
-        CONFIGS[categoryName][itemEntry.name] = config;
-        console.log(`Loaded: ${categoryName}/${itemEntry.name}`);
-      } catch { /* skip */ }
-    }
+    const categoryName = categoryEntry.name;
+    const categoryPath = `${fsmPath}/${categoryName}`;
+
+    // Load category-level FSM.ts (e.g., crops/FSM.ts)
+    await tryLoadModule(`${categoryPath}/FSM.ts`, categoryName);
+
+    // Load item-level FSM.ts (e.g., animals/dog/FSM.ts)
+    try {
+      for await (const itemEntry of Deno.readDir(categoryPath)) {
+        if (!itemEntry.isDirectory) continue;
+        await tryLoadModule(`${categoryPath}/${itemEntry.name}/FSM.ts`, `${categoryName}/${itemEntry.name}`);
+      }
+    } catch { /* no subdirs */ }
+  }
+
+  // Sort hooks for each endpoint
+  for (const [name, endpoint] of ENDPOINTS_REGISTRY) {
+    endpoint.hooks = sortHooks(endpoint.hooks);
+    console.log(`[MOD] Endpoint '${name}' hooks order: [${endpoint.hooks.map(h => h.moduleName).join(", ")}]`);
+  }
+
+  // Warn about orphan hooks
+  for (const [name, hooks] of PENDING_HOOKS) {
+    console.warn(`[MOD] ⚠️ ${hooks.length} hooks for '${name}' have no endpoint!`);
   }
 
   // Log summary
@@ -386,7 +522,130 @@ async function scanConfigs() {
     summary[key] = Object.keys(value).length;
   }
   console.log("Configs loaded:", summary);
-  console.log("Endpoints registered:", ENDPOINTS.size);
+  console.log("Endpoints registered:", ENDPOINTS_REGISTRY.size);
+}
+
+async function tryLoadModule(path: string, name: string) {
+  try {
+    const mod = await import(path);
+
+    // Call init if exists
+    if (mod.init) {
+      mod.init(moduleAPI);
+    }
+
+    // Register endpoints from ENDPOINTS export
+    if (mod.ENDPOINTS) {
+      for (const [key, endpointName] of Object.entries(mod.ENDPOINTS)) {
+        const handlerName = `handle${key.charAt(0).toUpperCase()}${key.slice(1).toLowerCase()}`;
+        if (mod[handlerName]) {
+          moduleAPI.registerEndpoint(endpointName as string, mod[handlerName], name);
+        }
+      }
+    }
+
+    // Register hooks from HOOKS export
+    if (mod.HOOKS) {
+      for (const [endpoint, hook] of Object.entries(mod.HOOKS)) {
+        moduleAPI.registerHook(endpoint, hook as ModuleHook, name);
+      }
+    }
+
+    console.log(`[MOD] Loaded: ${name}`);
+  } catch {
+    // No module - OK
+  }
+}
+
+// Database API for handlers
+function createDbAPI(userId: string): DatabaseAPI {
+  return {
+    async query(sql: string, params: unknown[] = []): Promise<unknown[]> {
+      // For now, use hasuraQuery with raw SQL via Hasura's run_sql
+      // In production, this would be a proper parameterized query
+      console.log("[DB] Query:", sql.slice(0, 50), params);
+
+      // Convert to GraphQL - this is a simplified version
+      // Real implementation would need proper SQL to GraphQL mapping
+      const result = await hasuraQuery(`
+        query {
+          game_objects(limit: 10) { id user_id type_code state }
+        }
+      `, {}, userId);
+
+      return result?.game_objects || [];
+    },
+
+    async getObject(id: number) {
+      const result = await hasuraQuery(`
+        query($id: Int!) {
+          game_objects_by_pk(id: $id) {
+            id user_id type_code state created_at x y
+          }
+        }
+      `, { id }, userId);
+      return result?.game_objects_by_pk || null;
+    },
+
+    async getPlotByCrop(cropId: number) {
+      // Get plot that contains this crop
+      const result = await hasuraQuery(`
+        query($cropId: Int!) {
+          game_objects(where: {id: {_eq: $cropId}}) {
+            id user_id x y
+          }
+        }
+      `, { cropId }, userId);
+
+      const crop = result?.game_objects?.[0];
+      if (!crop) return null;
+
+      // For now, the crop's x coordinate is the plot index
+      // In a real implementation, we'd look up the plot by position
+      return {
+        id: crop.x,
+        user_id: crop.user_id,
+        state: "planted",
+        crop_id: cropId
+      };
+    }
+  };
+}
+
+// Execute endpoint with hooks
+async function executeWithHooks(
+  endpoint: RegisteredEndpoint,
+  req: Request,
+  url: URL,
+  userId: string
+): Promise<Response> {
+  const ctx: HandlerContext = {
+    req,
+    url,
+    userId,
+    configs: CONFIGS,
+    db: createDbAPI(userId)
+  };
+
+  // Run BEFORE hooks
+  for (const { hook } of endpoint.hooks) {
+    if (hook.before) {
+      const result = await hook.before(ctx);
+      if (result) return result;  // Hook blocked request
+    }
+  }
+
+  // Run main handler
+  let response = await endpoint.handler(ctx);
+
+  // Run AFTER hooks
+  for (const { hook } of endpoint.hooks) {
+    if (hook.after) {
+      response = await hook.after(ctx, response);
+    }
+  }
+
+  return response;
 }
 
 // ===== GAME API HANDLERS =====
@@ -580,7 +839,8 @@ async function handlePlantCrop(req: Request): Promise<Response> {
     }
 
     // Store yield in params
-    const yieldRange = cropConfig.products?.[0]?.yield || [2, 4];
+    const products = cropConfig.products as Array<{ yield?: [number, number] }> | undefined;
+    const yieldRange = products?.[0]?.yield || [2, 4];
     const yieldAmount = Math.floor(Math.random() * (yieldRange[1] - yieldRange[0] + 1)) + yieldRange[0];
 
     await hasuraQuery(`
@@ -602,7 +862,7 @@ async function handlePlantCrop(req: Request): Promise<Response> {
 
   } catch (e) {
     console.error("[PLANT] Error:", e);
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
   }
 }
 
@@ -683,7 +943,8 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
     // Get crop config for exp and sell_silver
     const cropConfig = CONFIGS.crops?.[itemCode];
     const exp = cropConfig?.exp || 5;
-    const sellSilver = cropConfig?.products?.[0]?.sell_silver || 10;
+    const products = cropConfig?.products as Array<{ sell_silver?: number }> | undefined;
+    const sellSilver = products?.[0]?.sell_silver || 10;
 
     // Add items to inventory - user_id is automatically set by Hasura
     const currentItems = await hasuraQuery(`
@@ -736,7 +997,7 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
 
   } catch (e) {
     console.error("[HARVEST] Error:", e);
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers });
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
   }
 }
 
@@ -791,20 +1052,23 @@ Deno.serve(async (req) => {
 
   // List all available endpoints
   if (path === "/api/endpoints") {
-    const list = Array.from(ENDPOINTS.entries()).map(([p, e]) => ({ path: p, category: e.category, handler: e.handler }));
+    const list = Array.from(ENDPOINTS_REGISTRY.entries()).map(([name, e]) => ({
+      name,
+      path: e.path,
+      module: e.module,
+      hooks: e.hooks.map(h => h.moduleName)
+    }));
     return new Response(JSON.stringify(list), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  // Dynamic FSM endpoints
-  const endpoint = ENDPOINTS.get(path);
-  if (endpoint) {
-    return new Response(JSON.stringify({
-      endpoint: path,
-      category: endpoint.category,
-      handler: endpoint.handler,
-      status: "DB layer needed",
-      params: Object.fromEntries(url.searchParams)
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  // Dynamic FSM endpoints with hooks
+  for (const [name, endpoint] of ENDPOINTS_REGISTRY) {
+    if (endpoint.path === path) {
+      const claims = await getHasuraClaims(req.headers.get("authorization"));
+      const userId = claims?.["X-Hasura-User-Id"] || "0";
+      return await executeWithHooks(endpoint, req, url, userId);
+    }
   }
+
   return new Response("Not Found", { status: 404 });
 });
