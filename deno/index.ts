@@ -1005,6 +1005,27 @@ async function handleHarvestCrop(req: Request): Promise<Response> {
 
 await scanConfigs();
 
+// Helper to add CORS headers to any response
+function addCors(response: Response): Response {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+
+  // Clone headers and add CORS
+  const newHeaders = new Headers(response.headers);
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    newHeaders.set(key, value);
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
+}
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname;
@@ -1022,15 +1043,15 @@ Deno.serve(async (req) => {
   }
 
   if (path === "/v1/auth/claims") {
-    return await handleAuth(req);
+    return addCors(await handleAuth(req));
   }
 
   if (path === "/v1/actions/create_invoice") {
-    return await handleCreateInvoice(req);
+    return addCors(await handleCreateInvoice(req));
   }
 
   if (path === "/v1/webhook/telegram") {
-    return await handleTelegramWebhook(req);
+    return addCors(await handleTelegramWebhook(req));
   }
 
   // Game API: GET /api/configs/:category?/:code?
@@ -1038,16 +1059,16 @@ Deno.serve(async (req) => {
     const parts = path.split("/").filter(Boolean);
     const category = parts[2];
     const code = parts[3];
-    return handleGetConfigs(category, code);
+    return addCors(handleGetConfigs(category, code));
   }
 
   // Crop FSM API endpoints
   if (path === "/api/plant") {
-    return await handlePlantCrop(req);
+    return addCors(await handlePlantCrop(req));
   }
 
   if (path === "/api/harvest") {
-    return await handleHarvestCrop(req);
+    return addCors(await handleHarvestCrop(req));
   }
 
   // List all available endpoints
@@ -1066,9 +1087,9 @@ Deno.serve(async (req) => {
     if (endpoint.path === path) {
       const claims = await getHasuraClaims(req.headers.get("authorization"));
       const userId = claims?.["X-Hasura-User-Id"] || "0";
-      return await executeWithHooks(endpoint, req, url, userId);
+      return addCors(await executeWithHooks(endpoint, req, url, userId));
     }
   }
 
-  return new Response("Not Found", { status: 404 });
+  return new Response("Not Found", { status: 404, headers: corsHeaders });
 });
