@@ -569,7 +569,7 @@ function createDbAPI(userId: string): DatabaseAPI {
       // Real implementation would need proper SQL to GraphQL mapping
       const result = await hasuraQuery(`
         query {
-          game_objects(limit: 10) { id user_id type_code state }
+          game_objects(limit: 10) { id user_id type_code }
         }
       `, {}, userId);
 
@@ -580,7 +580,7 @@ function createDbAPI(userId: string): DatabaseAPI {
       const result = await hasuraQuery(`
         query($id: Int!) {
           game_objects_by_pk(id: $id) {
-            id user_id type_code state created_at x y
+            id user_id type_code created_at x y
           }
         }
       `, { id }, userId);

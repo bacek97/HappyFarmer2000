@@ -1635,17 +1635,15 @@
             // Load animals from API and display them
             await loadAnimals();
 
-            // Create plots
-            const grid = document.getElementById('farm-grid');
-            const emptyPlotImg = plotCfg?.stages?.empty?.image;
-            const blockedPlotImg = plotCfg?.stages?.blocked?.image;
-            const basePlots = plotCfg?.base_plots || 6;
+            // Load plots count from API
+            const plotsData = await api('/api/plots');
+            const plotsCount = plotsData?.plots_count || plotCfg?.base_plots || 6;
             const totalPlots = plotCfg?.total_plots || 32;
             const cols = 4;
             const gapX = 52, gapY = 26; // half tile size for isometric grid
 
             for (let i = 0; i < totalPlots; i++) {
-                const isBlocked = i >= basePlots;
+                const isBlocked = i >= plotsCount;
                 plots[i] = { state: isBlocked ? 'blocked' : 'empty', crop: null, stage: 0 };
                 const row = Math.floor(i / cols);
                 const col = i % cols;
@@ -2018,6 +2016,58 @@
                     await showCropSelector(id);
                 }
             }
+
+            // Blocked plot - buy it
+            if (plot.state === 'blocked') {
+                await showBuyPlotModal(id);
+            }
+        }
+
+        async function showBuyPlotModal(id) {
+            const plotCfg = CONFIGS.plots?.plot;
+            const plotsData = await api('/api/plots');
+            const currentPlots = plotsData?.plots_count || 6;
+            const basePlots = plotsData?.base_plots || 6;
+            const plotPrice = plotCfg?.plot_price || 100;
+            const priceMultiplier = plotCfg?.price_multiplier || 1.5;
+
+            const extraPlots = currentPlots - basePlots;
+            const price = Math.floor(plotPrice * Math.pow(priceMultiplier, extraPlots));
+
+            const submodal = document.getElementById('submodal');
+            const title = document.getElementById('submodal-title');
+            const text = document.getElementById('submodal-text');
+            const okBtn = document.getElementById('submodal-ok');
+
+            title.textContent = 'Купить грядку';
+            text.textContent = `Вы хотите купить новую грядку за ${price} 🪙?`;
+
+            okBtn.onclick = async () => {
+                closeSubmodal();
+                await buyPlot();
+            };
+
+            submodal.classList.add('active');
+        }
+
+        async function buyPlot() {
+            const response = await fetch(`${API_URL}/api/buy_plot`, {
+                method: 'POST',
+                headers: { 'Authorization': tg?.initData || '' }
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Грядка куплена!', 'success');
+                // Refresh the whole game state or just the plots
+                location.reload();
+            } else {
+                showToast(result.error || 'Ошибка при покупке', 'error');
+            }
+        }
+
+        function closeSubmodal() {
+            document.getElementById('submodal').classList.remove('active');
         }
 
         // Show modal with crop growth stages information
