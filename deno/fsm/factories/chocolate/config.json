@@ -53,6 +53,32 @@
     },
     "recipes": [
         {
+            "code": "sugar",
+            "name": {
+                "en": "Sugar",
+                "ru": "Сахар"
+            },
+            "inputs": [
+                {
+                    "item": "beet",
+                    "count": 3
+                }
+            ],
+            "products": [
+                {
+                    "code": "sugar",
+                    "name": {
+                        "en": "Sugar",
+                        "ru": "Сахар"
+                    },
+                    "count": 2,
+                    "sell_silver": 45
+                }
+            ],
+            "time": 300,
+            "exp": 12
+        },
+        {
             "code": "vamin_curd_snack",
             "name": {
                 "en": "VAMIN Curd Snack",

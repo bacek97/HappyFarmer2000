@@ -1,0 +1,113 @@
+{
+    "code": "cocoa",
+    "name": {
+        "en": "Cocoa Tree",
+        "ru": "Какао-дерево"
+    },
+    "description": {
+        "en": "Tropical tree that produces cocoa beans",
+        "ru": "Тропическое дерево, дающее какао-бобы"
+    },
+    "buy_silver": 150,
+    "exp": 50,
+    "level": 8,
+    "stage_times": [
+        120,
+        180,
+        240,
+        300,
+        360,
+        300,
+        240,
+        120
+    ],
+    "wither_time": 7200,
+    "pest_chance": 0.20,
+    "water_chance": 0.40,
+    "stages": {
+        "seed": {
+            "messages": {
+                "en": "Seed",
+                "ru": "Семя"
+            },
+            "image": "fsm/crops/cocoa/stage_1.png"
+        },
+        "sprout": {
+            "messages": {
+                "en": "Sprout",
+                "ru": "Росток"
+            },
+            "image": "fsm/crops/cocoa/stage_2.png"
+        },
+        "sapling": {
+            "messages": {
+                "en": "Sapling",
+                "ru": "Саженец"
+            },
+            "image": "fsm/crops/cocoa/stage_3.png"
+        },
+        "young_tree": {
+            "messages": {
+                "en": "Young Tree",
+                "ru": "Молодое дерево"
+            },
+            "image": "fsm/crops/cocoa/stage_4.png"
+        },
+        "growing": {
+            "messages": {
+                "en": "Growing",
+                "ru": "Рост"
+            },
+            "image": "fsm/crops/cocoa/stage_5.png"
+        },
+        "flowering": {
+            "messages": {
+                "en": "Flowering",
+                "ru": "Цветение"
+            },
+            "image": "fsm/crops/cocoa/stage_6.png"
+        },
+        "fruiting": {
+            "messages": {
+                "en": "Fruiting",
+                "ru": "Плодоношение"
+            },
+            "image": "fsm/crops/cocoa/stage_7.png"
+        },
+        "ripe": {
+            "messages": {
+                "en": "Ripe",
+                "ru": "Созрело"
+            },
+            "image": "fsm/crops/cocoa/stage_8.png"
+        },
+        "withered": {
+            "messages": {
+                "en": "Withered",
+                "ru": "Увяло"
+            },
+            "image": "fsm/crops/cocoa/stage_8.png"
+        }
+    },
+    "social": {
+        "steal_percent": 10,
+        "steals_per_neighbor": 2,
+        "waters_per_neighbor": 8,
+        "water_exp": 8,
+        "remove_pest_exp": 5
+    },
+    "products": [
+        {
+            "code": "cocoa_beans",
+            "name": {
+                "en": "Cocoa Beans",
+                "ru": "Какао-бобы"
+            },
+            "yield": [
+                3,
+                6
+            ],
+            "sell_silver": 80
+        }
+    ]
+}

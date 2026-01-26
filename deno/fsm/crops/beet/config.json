@@ -1,81 +1,81 @@
 {
-    "code": "patates",
+    "code": "beet",
     "name": {
-        "en": "Potato",
-        "ru": "Картофель"
+        "en": "Beet",
+        "ru": "Свёкла"
     },
     "description": {
-        "en": "Versatile potato",
-        "ru": "Универсальный картофель"
+        "en": "Sweet red root vegetable",
+        "ru": "Сладкий красный корнеплод"
     },
-    "buy_silver": 8,
-    "exp": 6,
+    "buy_silver": 15,
+    "exp": 10,
     "level": 2,
     "stage_times": [
-        40,
-        80,
-        100,
-        50
+        60,
+        90,
+        120,
+        60
     ],
     "wither_time": 2200,
-    "pest_chance": 0.1,
-    "water_chance": 0.25,
+    "pest_chance": 0.10,
+    "water_chance": 0.30,
     "stages": {
         "seed": {
             "messages": {
                 "en": "Seed",
                 "ru": "Семя"
             },
-            "image": "fsm/crops/patates/stage_1.png"
+            "image": "fsm/crops/beet/stage_1.png"
         },
         "sprout": {
             "messages": {
                 "en": "Sprout",
                 "ru": "Росток"
             },
-            "image": "fsm/crops/patates/stage_2.png"
+            "image": "fsm/crops/beet/stage_2.png"
         },
         "growing": {
             "messages": {
                 "en": "Growing",
                 "ru": "Рост"
             },
-            "image": "fsm/crops/patates/stage_3.png"
+            "image": "fsm/crops/beet/stage_3.png"
         },
         "ripe": {
             "messages": {
                 "en": "Ripe",
                 "ru": "Созрело"
             },
-            "image": "fsm/crops/patates/stage_4.png"
+            "image": "fsm/crops/beet/stage_4.png"
         },
         "withered": {
             "messages": {
                 "en": "Withered",
                 "ru": "Увяло"
             },
-            "image": "fsm/crops/patates/stage_4.png"
+            "image": "fsm/crops/beet/stage_4.png"
         }
     },
     "social": {
-        "steal_percent": 15,
-        "steals_per_neighbor": 4,
+        "steal_percent": 18,
+        "steals_per_neighbor": 3,
         "waters_per_neighbor": 5,
         "water_exp": 4,
-        "remove_pest_exp": 2
+        "remove_pest_exp": 3
     },
     "products": [
         {
-            "code": "patates",
+            "code": "beet",
             "name": {
-                "en": "Potato",
-                "ru": "Картофель"
+                "en": "Beet",
+                "ru": "Свёкла"
             },
             "yield": [
-                4,
-                8
+                2,
+                4
             ],
-            "sell_silver": 20
+            "sell_silver": 35
         }
     ]
 }
