@@ -619,6 +619,9 @@ async function executeWithHooks(
   url: URL,
   userId: string
 ): Promise<Response> {
+  const memStart = Deno.memoryUsage();
+  const timeStart = performance.now();
+
   const ctx: HandlerContext = {
     req,
     url,
@@ -628,27 +631,35 @@ async function executeWithHooks(
   };
 
   console.log(`[FSM] Executing ${endpoint.name} for user ${userId}`);
-  console.log(`[FSM] Context db:`, ctx.db ? "Defined" : "UNDEFINED");
 
-  // Run BEFORE hooks
-  for (const { hook } of endpoint.hooks) {
-    if (hook.before) {
-      const result = await hook.before(ctx);
-      if (result) return result;  // Hook blocked request
+  try {
+    // Run BEFORE hooks
+    for (const { hook } of endpoint.hooks) {
+      if (hook.before) {
+        const result = await hook.before(ctx);
+        if (result) return result;  // Hook blocked request
+      }
     }
-  }
 
-  // Run main handler
-  let response = await endpoint.handler(ctx);
+    // Run main handler
+    let response = await endpoint.handler(ctx);
 
-  // Run AFTER hooks
-  for (const { hook } of endpoint.hooks) {
-    if (hook.after) {
-      response = await hook.after(ctx, response);
+    // Run AFTER hooks
+    for (const { hook } of endpoint.hooks) {
+      if (hook.after) {
+        response = await hook.after(ctx, response);
+      }
     }
-  }
 
-  return response;
+    return response;
+  } finally {
+    const memEnd = Deno.memoryUsage();
+    const timeEnd = performance.now();
+    const heapDiff = (memEnd.heapUsed - memStart.heapUsed) / 1024 / 1024;
+    const duration = timeEnd - timeStart;
+
+    console.log(`[PERF] ${endpoint.name}: ${duration.toFixed(2)}ms | Heap Delta: ${heapDiff.toFixed(3)}MB | Current Heap: ${(memEnd.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+  }
 }
 
 // ===== GAME API HANDLERS =====
