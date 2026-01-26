@@ -1,15 +1,312 @@
 // CropFSM - Конечный автомат для культур
 // ========================================
 
-// ENDPOINTS
+import type { ModuleAPI, HandlerContext } from "../types.ts";
+
+// ENDPOINTS - for documentation only, actual registration in init()
 export const ENDPOINTS = {
-    PLANT: '/plant',           // ?plot_id=1&crop=tomato&x=1&y=2
-    HARVEST: '/harvest',       // ?id=1
-    WATER: '/water',           // ?id=1
-    REMOVE_PEST: '/remove_pest', // ?id=1
-    STEAL: '/steal',           // ?id=1
-    THROW_PEST: '/throw_pest'  // ?id=1
+    PLANT: 'plant',            // ?plot_id=1&crop=tomato&x=1&y=2
+    HARVEST: 'harvest',        // ?id=1
+    WATER: 'water',            // ?id=1
+    REMOVE_PEST: 'remove_pest', // ?id=1
+    STEAL: 'steal',            // ?id=1
+    THROW_PEST: 'throw_pest'   // ?id=1
 } as const;
+
+// ===== HASURA HELPER =====
+const HASURA_URL = Deno.env.get("HASURA_GRAPHQL_ENDPOINT") || "https://happy-farmer-2000.hasura.app/v1/graphql";
+const SERVICE_USER_TOKEN = Deno.env.get("SERVICE_USER_TOKEN") || "";
+
+async function hasuraQuery(query: string, variables: Record<string, unknown> = {}, userId?: string) {
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+
+    if (SERVICE_USER_TOKEN) {
+        headers["Authorization"] = SERVICE_USER_TOKEN;
+    }
+
+    if (userId) {
+        headers["X-Hasura-Role"] = "user";
+        headers["X-Hasura-User-Id"] = userId;
+    }
+
+    const res = await fetch(HASURA_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ query, variables }),
+    });
+
+    const json = await res.json();
+    if (json.errors) {
+        console.error("Hasura Error:", json.errors);
+        throw new Error(json.errors[0]?.message || "GraphQL Error");
+    }
+    return json.data;
+}
+
+// ===== MODULE INIT =====
+let CONFIGS: Record<string, Record<string, unknown>> = {};
+
+export function init(api: ModuleAPI) {
+    CONFIGS = api.configs;
+
+    api.registerEndpoint(ENDPOINTS.PLANT, handlePlantEndpoint, "crops");
+    api.registerEndpoint(ENDPOINTS.HARVEST, handleHarvestEndpoint, "crops");
+}
+
+// ===== HTTP ENDPOINT HANDLERS =====
+
+async function handlePlantEndpoint(ctx: HandlerContext): Promise<Response> {
+    const headers = { "Content-Type": "application/json" };
+
+    try {
+        if (ctx.userId === "0") {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
+        }
+
+        const plotId = parseInt(ctx.url.searchParams.get("plot_id") || "0");
+        const cropCode = ctx.url.searchParams.get("crop") || "";
+
+        console.log("[PLANT] Request:", { userId: ctx.userId, plotId, cropCode });
+
+        if (!cropCode || plotId < 0) {
+            return new Response(JSON.stringify({ error: "Missing crop or plot_id" }), { status: 400, headers });
+        }
+
+        // Get crop config
+        console.log("[PLANT] Available crops:", Object.keys(CONFIGS.crops || {}));
+        const cropConfig = CONFIGS.crops?.[cropCode] as CropConfig | undefined;
+        if (!cropConfig) {
+            console.log("[PLANT] Crop not found:", cropCode);
+            return new Response(JSON.stringify({ error: "Unknown crop", available: Object.keys(CONFIGS.crops || {}) }), { status: 404, headers });
+        }
+
+        console.log("[PLANT] Crop config found:", cropConfig.name);
+
+        // Check and deduct seeds from user_stats
+        const seedKey = `seed_${cropCode}`;
+        const seedCheck = await hasuraQuery(`
+      query($userId: bigint!, $key: String!) {
+        user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) {
+          value
+        }
+      }
+    `, { userId: ctx.userId, key: seedKey }, ctx.userId);
+
+        const currentSeeds = seedCheck?.user_stats?.[0]?.value || 0;
+        if (currentSeeds < 1) {
+            return new Response(JSON.stringify({ error: "No seeds" }), { status: 400, headers });
+        }
+
+        // Deduct 1 seed
+        await hasuraQuery(`
+      mutation($key: String!, $value: Int!) {
+        insert_user_stats_one(
+          object: {key: $key, value: $value}
+          on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
+        ) { key }
+      }
+    `, { key: seedKey, value: currentSeeds - 1 }, ctx.userId);
+
+        // Create game_object
+        const objData = await hasuraQuery(`
+      mutation($typeCode: String!, $x: Int!) {
+        insert_game_objects_one(object: {
+          type_code: $typeCode,
+          x: $x,
+          y: 0
+        }) {
+          id
+          created_at
+        }
+      }
+    `, { typeCode: `crop_${cropCode}`, x: plotId }, ctx.userId);
+
+        const objectId = objData?.insert_game_objects_one?.id;
+        const createdAt = objData?.insert_game_objects_one?.created_at;
+
+        if (!objectId) {
+            return new Response(JSON.stringify({ error: "Failed to create object" }), { status: 500, headers });
+        }
+
+        // Generate and insert checkpoints
+        const checkpoints = generateCropCheckpoints(cropConfig);
+
+        for (const cp of checkpoints) {
+            await hasuraQuery(`
+        mutation($objectId: Int!, $action: String!, $timeOffset: Int!, $deadline: Int!) {
+          insert_game_checkpoints_one(object: {
+            object_id: $objectId,
+            action: $action,
+            time_offset: $timeOffset,
+            deadline: $deadline
+          }) { id }
+        }
+      `, {
+                objectId,
+                action: cp.action,
+                timeOffset: cp.time_offset,
+                deadline: cp.deadline || (cp.time_offset + 1800),
+            }, ctx.userId);
+        }
+
+        // Store yield in params
+        const yieldAmount = generateYield(cropConfig);
+
+        await hasuraQuery(`
+      mutation($objectId: Int!, $key: String!, $value: String!) {
+        insert_game_object_params_one(object: {object_id: $objectId, key: $key, value: $value}) { object_id }
+      }
+    `, { objectId, key: "yield", value: String(yieldAmount) }, ctx.userId);
+
+        console.log(`[PLANT] User ${ctx.userId} planted ${cropCode} on plot ${plotId}, object ${objectId}`);
+
+        return new Response(JSON.stringify({
+            success: true,
+            objectId,
+            cropCode,
+            plotId,
+            checkpoints: checkpoints.length,
+            yield: yieldAmount
+        }), { headers });
+
+    } catch (e) {
+        console.error("[PLANT] Error:", e);
+        return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
+    }
+}
+
+async function handleHarvestEndpoint(ctx: HandlerContext): Promise<Response> {
+    const headers = { "Content-Type": "application/json" };
+
+    try {
+        if (ctx.userId === "0") {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
+        }
+
+        const objectId = parseInt(ctx.url.searchParams.get("id") || "0");
+
+        if (!objectId) {
+            return new Response(JSON.stringify({ error: "Missing object id" }), { status: 400, headers });
+        }
+
+        // Get object and check ownership
+        const objData = await hasuraQuery(`
+      query($objectId: Int!) {
+        game_objects_by_pk(id: $objectId) {
+          id
+          type_code
+          user_id
+          created_at
+          params { key value }
+          checkpoints { action time_offset deadline done_at }
+        }
+      }
+    `, { objectId }, ctx.userId);
+
+        const obj = objData?.game_objects_by_pk;
+        if (!obj) {
+            return new Response(JSON.stringify({ error: "Object not found" }), { status: 404, headers });
+        }
+
+        if (String(obj.user_id) !== ctx.userId) {
+            return new Response(JSON.stringify({ error: "Not your crop" }), { status: 403, headers });
+        }
+
+        // Check if ready to harvest
+        const harvestCheckpoint = obj.checkpoints?.find((c: Checkpoint) => c.action === 'harvest');
+        if (!harvestCheckpoint) {
+            return new Response(JSON.stringify({ error: "No harvest checkpoint" }), { status: 400, headers });
+        }
+
+        const now = Date.now();
+        const createdAtMs = new Date(obj.created_at).getTime();
+        const triggerTimeMs = createdAtMs + (harvestCheckpoint.time_offset * 1000);
+        const deadlineMs = createdAtMs + (harvestCheckpoint.deadline * 1000);
+
+        if (now < triggerTimeMs) {
+            return new Response(JSON.stringify({ error: "Not ready yet" }), { status: 400, headers });
+        }
+
+        if (now > deadlineMs) {
+            // Withered - just delete
+            await hasuraQuery(`
+        mutation($objectId: Int!) {
+          delete_game_objects_by_pk(id: $objectId) { id }
+        }
+      `, { objectId }, ctx.userId);
+            return new Response(JSON.stringify({ error: "Withered", harvested: 0 }), { headers });
+        }
+
+        // Get yield
+        const yieldParam = obj.params?.find((p: { key: string; value: string }) => p.key === 'yield');
+        const yieldAmount = parseInt(yieldParam?.value || "2");
+
+        // Get item code from type_code (crop_tomato -> tomato)
+        const itemCode = obj.type_code.replace('crop_', '');
+        const itemKey = `item_${itemCode}`;
+
+        // Get crop config for exp and sell_silver
+        const cropConfig = CONFIGS.crops?.[itemCode] as CropConfig | undefined;
+        const exp = cropConfig?.exp || 5;
+        const products = (cropConfig as Record<string, unknown>)?.products as Array<{ sell_silver?: number }> | undefined;
+        const sellSilver = products?.[0]?.sell_silver || 10;
+
+        // Add items to inventory
+        const currentItems = await hasuraQuery(`
+      query($userId: bigint!, $key: String!) {
+        user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) { value }
+      }
+    `, { userId: ctx.userId, key: itemKey }, ctx.userId);
+
+        const currentItemCount = currentItems?.user_stats?.[0]?.value || 0;
+        await hasuraQuery(`
+      mutation($key: String!, $value: Int!) {
+        insert_user_stats_one(
+          object: {key: $key, value: $value}
+          on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
+        ) { key }
+      }
+    `, { key: itemKey, value: currentItemCount + yieldAmount }, ctx.userId);
+
+        // Add exp
+        const currentExp = await hasuraQuery(`
+      query($userId: bigint!) {
+        user_stats(where: {user_id: {_eq: $userId}, key: {_eq: "exp"}}) { value }
+      }
+    `, { userId: ctx.userId }, ctx.userId);
+        const expValue = (currentExp?.user_stats?.[0]?.value || 0) + exp;
+        await hasuraQuery(`
+      mutation($key: String!, $value: Int!) {
+        insert_user_stats_one(
+          object: {key: $key, value: $value}
+          on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
+        ) { key }
+      }
+    `, { key: "exp", value: expValue }, ctx.userId);
+
+        // Delete the game object
+        await hasuraQuery(`
+      mutation($objectId: Int!) {
+        delete_game_objects_by_pk(id: $objectId) { id }
+      }
+    `, { objectId }, ctx.userId);
+
+        console.log(`[HARVEST] User ${ctx.userId} harvested ${itemCode} x${yieldAmount}`);
+
+        return new Response(JSON.stringify({
+            success: true,
+            item: itemCode,
+            harvested: yieldAmount,
+            exp: exp
+        }), { headers });
+
+    } catch (e) {
+        console.error("[HARVEST] Error:", e);
+        return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
+    }
+}
 
 // TYPES
 interface CropConfig {
