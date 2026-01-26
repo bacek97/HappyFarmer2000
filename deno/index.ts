@@ -756,9 +756,17 @@ Deno.serve(async (req) => {
   // Dynamic FSM endpoints with hooks
   for (const [name, endpoint] of ENDPOINTS_REGISTRY) {
     if (endpoint.path === path) {
-      const claims = await getHasuraClaims(req.headers.get("authorization"));
-      const userId = claims?.["X-Hasura-User-Id"] || "0";
-      return addCors(await executeWithHooks(endpoint, req, url, userId));
+      try {
+        const claims = await getHasuraClaims(req.headers.get("authorization"));
+        const userId = claims?.["X-Hasura-User-Id"] || "0";
+        return addCors(await executeWithHooks(endpoint, req, url, userId));
+      } catch (e) {
+        console.error(`[FSM] Error in ${name}:`, e);
+        return new Response(JSON.stringify({ error: (e as Error).message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
     }
   }
 

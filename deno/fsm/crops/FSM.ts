@@ -75,92 +75,86 @@ async function handlePlantEndpoint(ctx: HandlerContext): Promise<Response> {
         }
 
         // Get crop config
-        console.log("[PLANT] Available crops:", Object.keys(CONFIGS.crops || {}));
         const cropConfig = CONFIGS.crops?.[cropCode] as CropConfig | undefined;
         if (!cropConfig) {
-            console.log("[PLANT] Crop not found:", cropCode);
             return new Response(JSON.stringify({ error: "Unknown crop", available: Object.keys(CONFIGS.crops || {}) }), { status: 404, headers });
         }
 
-        console.log("[PLANT] Crop config found:", cropConfig.name);
-
-        // Check and deduct seeds from user_stats
+        // Generate checkpoints and yield BEFORE queries
+        const checkpoints = generateCropCheckpoints(cropConfig);
+        const yieldAmount = generateYield(cropConfig);
         const seedKey = `seed_${cropCode}`;
+
+        // REQUEST 1: Get current seeds count
         const seedCheck = await hasuraQuery(`
-      query($userId: bigint!, $key: String!) {
-        user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) {
-          value
-        }
-      }
-    `, { userId: ctx.userId, key: seedKey }, ctx.userId);
+            query($userId: bigint!, $key: String!) {
+                user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) {
+                    value
+                }
+            }
+        `, { userId: ctx.userId, key: seedKey }, ctx.userId);
 
         const currentSeeds = seedCheck?.user_stats?.[0]?.value || 0;
         if (currentSeeds < 1) {
             return new Response(JSON.stringify({ error: "No seeds" }), { status: 400, headers });
         }
 
-        // Deduct 1 seed
-        await hasuraQuery(`
-      mutation($key: String!, $value: Int!) {
-        insert_user_stats_one(
-          object: {key: $key, value: $value}
-          on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
-        ) { key }
-      }
-    `, { key: seedKey, value: currentSeeds - 1 }, ctx.userId);
+        // REQUEST 2: Single mutation with nested inserts
+        // - Update seeds
+        // - Create game_object with checkpoints and params
+        const checkpointsData = checkpoints.map(cp => ({
+            action: cp.action,
+            time_offset: cp.time_offset,
+            deadline: cp.deadline || (cp.time_offset + 1800)
+        }));
 
-        // Create game_object
-        const objData = await hasuraQuery(`
-      mutation($typeCode: String!, $x: Int!) {
-        insert_game_objects_one(object: {
-          type_code: $typeCode,
-          x: $x,
-          y: 0
-        }) {
-          id
-          created_at
-        }
-      }
-    `, { typeCode: `crop_${cropCode}`, x: plotId }, ctx.userId);
+        const paramsData = [
+            { key: "yield", value: String(yieldAmount) }
+        ];
 
-        const objectId = objData?.insert_game_objects_one?.id;
-        const createdAt = objData?.insert_game_objects_one?.created_at;
+        const result = await hasuraQuery(`
+            mutation PlantCrop(
+                $seedKey: String!, 
+                $newSeedCount: Int!,
+                $typeCode: String!, 
+                $x: Int!,
+                $checkpoints: [game_checkpoints_insert_input!]!,
+                $params: [game_object_params_insert_input!]!
+            ) {
+                update_user_stats_by_pk(
+                    pk_columns: {user_id: "${ctx.userId}", key: $seedKey}, 
+                    _set: {value: $newSeedCount}
+                ) {
+                    value
+                }
+                
+                insert_game_objects_one(object: {
+                    type_code: $typeCode,
+                    x: $x,
+                    y: 0,
+                    checkpoints: { data: $checkpoints },
+                    params: { data: $params }
+                }) {
+                    id
+                    created_at
+                }
+            }
+        `, {
+            seedKey,
+            newSeedCount: currentSeeds - 1,
+            typeCode: `crop_${cropCode}`,
+            x: plotId,
+            checkpoints: checkpointsData,
+            params: paramsData
+        }, ctx.userId);
+
+        const objectId = result?.insert_game_objects_one?.id;
 
         if (!objectId) {
             return new Response(JSON.stringify({ error: "Failed to create object" }), { status: 500, headers });
         }
 
-        // Generate and insert checkpoints
-        const checkpoints = generateCropCheckpoints(cropConfig);
-
-        for (const cp of checkpoints) {
-            await hasuraQuery(`
-        mutation($objectId: Int!, $action: String!, $timeOffset: Int!, $deadline: Int!) {
-          insert_game_checkpoints_one(object: {
-            object_id: $objectId,
-            action: $action,
-            time_offset: $timeOffset,
-            deadline: $deadline
-          }) { id }
-        }
-      `, {
-                objectId,
-                action: cp.action,
-                timeOffset: cp.time_offset,
-                deadline: cp.deadline || (cp.time_offset + 1800),
-            }, ctx.userId);
-        }
-
-        // Store yield in params
-        const yieldAmount = generateYield(cropConfig);
-
-        await hasuraQuery(`
-      mutation($objectId: Int!, $key: String!, $value: String!) {
-        insert_game_object_params_one(object: {object_id: $objectId, key: $key, value: $value}) { object_id }
-      }
-    `, { objectId, key: "yield", value: String(yieldAmount) }, ctx.userId);
-
-        console.log(`[PLANT] User ${ctx.userId} planted ${cropCode} on plot ${plotId}, object ${objectId}`);
+        console.log(`[PLANT] User ${ctx.userId} planted ${cropCode} on plot ${plotId}, object ${objectId} (2 requests)`);
 
         return new Response(JSON.stringify({
             success: true,
@@ -191,21 +185,25 @@ async function handleHarvestEndpoint(ctx: HandlerContext): Promise<Response> {
             return new Response(JSON.stringify({ error: "Missing object id" }), { status: 400, headers });
         }
 
-        // Get object and check ownership
-        const objData = await hasuraQuery(`
-      query($objectId: Int!) {
-        game_objects_by_pk(id: $objectId) {
-          id
-          type_code
-          user_id
-          created_at
-          params { key value }
-          checkpoints { action time_offset deadline done_at }
-        }
-      }
-    `, { objectId }, ctx.userId);
+        // REQUEST 1: Get object + user stats in one query
+        const data = await hasuraQuery(`
+            query GetHarvestData($objectId: Int!, $userId: bigint!) {
+                game_objects_by_pk(id: $objectId) {
+                    id
+                    type_code
+                    user_id
+                    created_at
+                    params { key value }
+                    checkpoints { action time_offset deadline done_at }
+                }
+                user_stats(where: {user_id: {_eq: $userId}}) {
+                    key
+                    value
+                }
+            }
+        `, { objectId, userId: ctx.userId }, ctx.userId);
 
-        const obj = objData?.game_objects_by_pk;
+        const obj = data?.game_objects_by_pk;
         if (!obj) {
             return new Response(JSON.stringify({ error: "Object not found" }), { status: 404, headers });
         }
@@ -232,14 +230,14 @@ async function handleHarvestEndpoint(ctx: HandlerContext): Promise<Response> {
         if (now > deadlineMs) {
             // Withered - just delete
             await hasuraQuery(`
-        mutation($objectId: Int!) {
-          delete_game_objects_by_pk(id: $objectId) { id }
-        }
-      `, { objectId }, ctx.userId);
+                mutation($objectId: Int!) {
+                    delete_game_objects_by_pk(id: $objectId) { id }
+                }
+            `, { objectId }, ctx.userId);
             return new Response(JSON.stringify({ error: "Withered", harvested: 0 }), { headers });
         }
 
-        // Get yield
+        // Get yield from object params
         const yieldParam = obj.params?.find((p: { key: string; value: string }) => p.key === 'yield');
         const yieldAmount = parseInt(yieldParam?.value || "2");
 
@@ -247,53 +245,43 @@ async function handleHarvestEndpoint(ctx: HandlerContext): Promise<Response> {
         const itemCode = obj.type_code.replace('crop_', '');
         const itemKey = `item_${itemCode}`;
 
-        // Get crop config for exp and sell_silver
+        // Get crop config for exp
         const cropConfig = CONFIGS.crops?.[itemCode] as CropConfig | undefined;
         const exp = cropConfig?.exp || 5;
-        const products = (cropConfig as Record<string, unknown>)?.products as Array<{ sell_silver?: number }> | undefined;
-        const sellSilver = products?.[0]?.sell_silver || 10;
 
-        // Add items to inventory
-        const currentItems = await hasuraQuery(`
-      query($userId: bigint!, $key: String!) {
-        user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) { value }
-      }
-    `, { userId: ctx.userId, key: itemKey }, ctx.userId);
+        // Get current values from already-fetched user_stats
+        const userStats = data?.user_stats || [];
+        const currentItemCount = userStats.find((s: { key: string; value: number }) => s.key === itemKey)?.value || 0;
+        const currentExp = userStats.find((s: { key: string; value: number }) => s.key === "exp")?.value || 0;
 
-        const currentItemCount = currentItems?.user_stats?.[0]?.value || 0;
+        // REQUEST 2: Single mutation - update items, exp, and delete object
         await hasuraQuery(`
-      mutation($key: String!, $value: Int!) {
-        insert_user_stats_one(
-          object: {key: $key, value: $value}
-          on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
-        ) { key }
-      }
-    `, { key: itemKey, value: currentItemCount + yieldAmount }, ctx.userId);
+            mutation CompleteHarvest(
+                $itemKey: String!, 
+                $newItemCount: Int!,
+                $newExp: Int!,
+                $objectId: Int!
+            ) {
+                update_items: insert_user_stats_one(
+                    object: {key: $itemKey, value: $newItemCount}
+                    on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
+                ) { key }
+                
+                update_exp: insert_user_stats_one(
+                    object: {key: "exp", value: $newExp}
+                    on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
+                ) { key }
+                
+                delete_game_objects_by_pk(id: $objectId) { id }
+            }
+        `, {
+            itemKey,
+            newItemCount: currentItemCount + yieldAmount,
+            newExp: currentExp + exp,
+            objectId
+        }, ctx.userId);
 
-        // Add exp
-        const currentExp = await hasuraQuery(`
-      query($userId: bigint!) {
-        user_stats(where: {user_id: {_eq: $userId}, key: {_eq: "exp"}}) { value }
-      }
-    `, { userId: ctx.userId }, ctx.userId);
-        const expValue = (currentExp?.user_stats?.[0]?.value || 0) + exp;
-        await hasuraQuery(`
-      mutation($key: String!, $value: Int!) {
-        insert_user_stats_one(
-          object: {key: $key, value: $value}
-          on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
-        ) { key }
-      }
-    `, { key: "exp", value: expValue }, ctx.userId);
-
-        // Delete the game object
-        await hasuraQuery(`
-      mutation($objectId: Int!) {
-        delete_game_objects_by_pk(id: $objectId) { id }
-      }
-    `, { objectId }, ctx.userId);
-
-        console.log(`[HARVEST] User ${ctx.userId} harvested ${itemCode} x${yieldAmount}`);
+        console.log(`[HARVEST] User ${ctx.userId} harvested ${itemCode} x${yieldAmount} (2 requests)`);
 
         return new Response(JSON.stringify({
             success: true,
