@@ -982,7 +982,13 @@
         if (tg) { tg.ready(); tg.expand(); }
 
         async function api(path) {
-            try { return await (await fetch(`${API_URL}${path}`)).json(); }
+            try {
+                const headers = {};
+                if (tg?.initData) {
+                    headers['Authorization'] = tg.initData;
+                }
+                return await (await fetch(`${API_URL}${path}`, { headers })).json();
+            }
             catch (e) { console.error('API Error:', e); return null; }
         }
 
@@ -1639,6 +1645,9 @@
             const plotsData = await api('/api/plots');
             const plotsCount = plotsData?.plots_count || plotCfg?.base_plots || 6;
             const totalPlots = plotCfg?.total_plots || 32;
+            const grid = document.getElementById('farm-grid');
+            const emptyPlotImg = plotCfg?.stages?.empty?.image;
+            const blockedPlotImg = plotCfg?.stages?.blocked?.image;
             const cols = 4;
             const gapX = 52, gapY = 26; // half tile size for isometric grid
 
