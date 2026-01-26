@@ -305,13 +305,23 @@ interface CropConfig {
     stage_times: number[];
     wither_time: number;
     buy_silver: number;
-    sell_silver: number;
     exp: number;
     level: number;
-    yield: [number, number];
-    steal_percent: number;
     pest_chance?: number;
     water_chance?: number;
+    social?: {
+        steal_percent?: number;
+        steals_per_neighbor?: number;
+        waters_per_neighbor?: number;
+        water_exp?: number;
+        remove_pest_exp?: number;
+    };
+    products: Array<{
+        code: string;
+        name: Record<string, string>;
+        yield: [number, number];
+        sell_silver: number;
+    }>;
 }
 
 interface Checkpoint {
@@ -421,6 +431,8 @@ export function generateCropCheckpoints(config: CropConfig): Checkpoint[] {
 }
 
 export function generateYield(config: CropConfig): number {
-    const [min, max] = config.yield;
+    const product = config.products?.[0];
+    if (!product || !product.yield) return 2;
+    const [min, max] = product.yield;
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
