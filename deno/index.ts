@@ -627,6 +627,9 @@ async function executeWithHooks(
     db: createDbAPI(userId)
   };
 
+  console.log(`[FSM] Executing ${endpoint.name} for user ${userId}`);
+  console.log(`[FSM] Context db:`, ctx.db ? "Defined" : "UNDEFINED");
+
   // Run BEFORE hooks
   for (const { hook } of endpoint.hooks) {
     if (hook.before) {

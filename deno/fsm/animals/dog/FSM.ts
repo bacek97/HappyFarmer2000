@@ -17,6 +17,9 @@ export const HOOKS: Record<string, ModuleHook> = {
 };
 
 async function guardCheck(ctx: HandlerContext): Promise<Response | null> {
+    console.log("[DOG] guardCheck called with ctx keys:", Object.keys(ctx));
+    console.log("[DOG] ctx.db is:", ctx.db ? "Defined" : "UNDEFINED");
+
     // Get object ID from URL
     const objectId = parseInt(ctx.url.searchParams.get("id") || "0");
     if (!objectId) return null;
