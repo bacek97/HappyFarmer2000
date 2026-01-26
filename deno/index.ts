@@ -459,6 +459,8 @@ function sortHooks(hooks: PendingHook[]): PendingHook[] {
 }
 
 async function scanConfigs() {
+  const memStart = Deno.memoryUsage();
+  const timeStart = performance.now();
   const fsmPath = "./fsm";
 
   // First pass: load all configs
@@ -521,11 +523,20 @@ async function scanConfigs() {
   for (const [key, value] of Object.entries(CONFIGS)) {
     summary[key] = Object.keys(value).length;
   }
+
+  const memEnd = Deno.memoryUsage();
+  const timeEnd = performance.now();
+  const heapDiff = (memEnd.heapUsed - memStart.heapUsed) / 1024 / 1024;
+
   console.log("Configs loaded:", summary);
   console.log("Endpoints registered:", ENDPOINTS_REGISTRY.size);
+  console.log(`[PERF] Initialization: ${(timeEnd - timeStart).toFixed(2)}ms | Heap Delta: ${heapDiff.toFixed(3)}MB | Current Heap: ${(memEnd.heapUsed / 1024 / 1024).toFixed(2)}MB`);
 }
 
 async function tryLoadModule(path: string, name: string) {
+  const memStart = Deno.memoryUsage();
+  const timeStart = performance.now();
+
   try {
     const mod = await import(path);
 
@@ -551,7 +562,11 @@ async function tryLoadModule(path: string, name: string) {
       }
     }
 
-    console.log(`[MOD] Loaded: ${name}`);
+    const memEnd = Deno.memoryUsage();
+    const timeEnd = performance.now();
+    const heapDiff = (memEnd.heapUsed - memStart.heapUsed) / 1024 / 1024;
+
+    console.log(`[MOD] Loaded: ${name} | ${(timeEnd - timeStart).toFixed(2)}ms | Heap Delta: ${heapDiff.toFixed(3)}MB`);
   } catch {
     // No module - OK
   }
