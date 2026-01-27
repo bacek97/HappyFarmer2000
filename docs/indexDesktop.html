@@ -25,16 +25,18 @@
             position: relative;
             width: 100%;
             height: 100%;
-            overflow: auto;
-            -webkit-overflow-scrolling: touch;
-            background: #1a3a1a;
+            overflow: hidden;
         }
 
-        /* Game world - fixed size */
+        /* Game world - fixed size, background never crops */
         #game-world {
-            position: relative;
+            position: absolute;
             width: 1200px;
             height: 900px;
+            left: 50%;
+            top: 50%;
+            margin-left: -600px;
+            margin-top: -450px;
             background: url('fsm/ui/background.jpg') no-repeat;
             background-size: 100% 100%;
         }
@@ -244,11 +246,19 @@
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
 
-        .farm-grid {
+        .farm-container {
             position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 400px;
+        }
+
+        .farm-grid {
+            position: relative;
             width: 100%;
             height: 100%;
-            pointer-events: none;
         }
 
         .plot {
@@ -263,7 +273,6 @@
             align-items: center;
             justify-content: center;
             transition: all 0.15s;
-            pointer-events: auto;
         }
 
         .plot:hover {
@@ -277,7 +286,7 @@
             height: auto;
             bottom: 17px;
             left: 50%;
-            margin-left: -75px;
+            transform: translateX(-50%);
             pointer-events: none;
         }
 
@@ -336,6 +345,7 @@
             position: absolute;
             cursor: pointer;
             transition: transform 0.2s;
+            /* z-index: 50; */
         }
 
         .map-object:hover {
@@ -351,8 +361,7 @@
             position: absolute;
             bottom: -22px;
             left: 50%;
-            margin-left: -40px;
-            /* Approximate half-width */
+            transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.75);
             color: white;
             padding: 3px 10px;
@@ -881,7 +890,9 @@
             <!-- Animals layer -->
             <div id="animals-layer"></div>
             <!-- Farm Grid (in front) -->
-            <div class="farm-grid" id="farm-grid"></div>
+            <div class="farm-container">
+                <div class="farm-grid" id="farm-grid"></div>
+            </div>
         </div>
 
         <!-- UI Layer (fixed to screen) -->
@@ -1567,13 +1578,55 @@
         // Map panning functionality
         let isPanning = false, startX = 0, startY = 0, panX = 0, panY = 0;
 
-        function centerMap() {
-            const game = document.getElementById('game');
-            const world = document.getElementById('game-world');
-            if (game && world) {
-                game.scrollLeft = (world.offsetWidth - game.offsetWidth) / 2;
-                game.scrollTop = (world.offsetHeight - game.offsetHeight) / 2;
-            }
+        function initMapPanning() {
+            const gameWorld = document.getElementById('game-world');
+
+            // Mouse events (desktop)
+            gameWorld.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.map-object, .plot, .tool, .action-btn')) return;
+                isPanning = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+                gameWorld.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                panX = e.clientX - startX;
+                panY = e.clientY - startY;
+                updatePan();
+            });
+
+            document.addEventListener('mouseup', () => {
+                isPanning = false;
+                document.getElementById('game-world').style.cursor = 'grab';
+            });
+
+            // Touch events (mobile)
+            gameWorld.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.map-object, .plot, .tool, .action-btn')) return;
+                if (e.touches.length === 1) {
+                    isPanning = true;
+                    startX = e.touches[0].clientX - panX;
+                    startY = e.touches[0].clientY - panY;
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isPanning || e.touches.length !== 1) return;
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                updatePan();
+            }, { passive: true });
+
+            document.addEventListener('touchend', () => { isPanning = false; });
+
+            gameWorld.style.cursor = 'grab';
+        }
+
+        function updatePan() {
+            const gameWorld = document.getElementById('game-world');
+            gameWorld.style.transform = `translate(${panX}px, ${panY}px)`;
         }
 
         async function init() {
@@ -1620,8 +1673,8 @@
                 const col = i % cols;
 
                 // Isometric diamond grid positioning (row 0 at top-left)
-                const x = (row - col) * gapX + 450;
-                const y = (col + row) * gapY + 350;
+                const x = (row - col) * gapX + 200;
+                const y = (col + row) * gapY + 50;
 
                 const plot = document.createElement('div');
                 plot.className = isBlocked ? 'plot blocked' : 'plot empty';
@@ -1652,8 +1705,8 @@
                 };
             });
 
-            // Center map initially
-            centerMap();
+            // Enable map panning
+            initMapPanning();
         }
 
         async function loadMapObjects() {
@@ -1675,8 +1728,9 @@
                 const isDecoration = cfg.decoration === true;
                 const obj = document.createElement('div');
                 obj.className = isDecoration ? 'map-object decoration' : 'map-object';
-                obj.style.left = `${cfg.position.x + 600}px`;
-                obj.style.top = `${cfg.position.y + 450}px`;
+                obj.style.left = '50%';
+                obj.style.top = '50%';
+                obj.style.transform = `translate(${cfg.position.x}%, ${cfg.position.y}%)`;
                 if (isDecoration) {
                     obj.style.pointerEvents = 'none';
                     obj.style.cursor = 'default';
@@ -1735,8 +1789,9 @@
                 const animalEl = document.createElement('div');
                 animalEl.className = 'animal-object';
                 animalEl.dataset.id = animal.id;
-                animalEl.style.left = `${animal.x + 600}px`;
-                animalEl.style.top = `${animal.y + 450}px`;
+                animalEl.style.left = '50%';
+                animalEl.style.top = '50%';
+                animalEl.style.transform = `translate(${animal.x}px, ${animal.y}px)`;
 
                 const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
                 const iconHtml = stageImg.startsWith('fsm/') || stageImg.startsWith('/')
