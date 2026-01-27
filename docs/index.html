@@ -37,7 +37,7 @@
             top: 50%;
             margin-left: -600px;
             margin-top: -450px;
-            background: url('../deno/fsm/ui/background.jpg') no-repeat;
+            background: url('fsm/ui/background.jpg') no-repeat;
             background-size: 100% 100%;
         }
 
@@ -1132,7 +1132,7 @@
             const stage = plotState.stage || 'ripe';
             const img = plotState.config?.stages?.[stage]?.image;
             const html = img
-                ? `<img src="../deno/${img}" class="crop-img">`
+                ? `<img src="${img}" class="crop-img">`
                 : `<div class="crop-img" style="font-size:30px;text-align:center">${stage === 'ripe' ? '🍎' : '🌱'}</div>`;
             plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[stage] || '✓'}</span>`;
         }
@@ -1382,7 +1382,7 @@
                     const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓', withered: '💀' };
                     const img = cropCfg?.stages?.[currentStage]?.image;
                     const html = img
-                        ? `<img src="../deno/${img}" class="crop-img">`
+                        ? `<img src="${img}" class="crop-img">`
                         : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (currentStage === 'ripe' ? '🍎' : '🌱')}</div>`;
                     plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage]}</span>`;
 
@@ -1538,7 +1538,7 @@
 
                     const img = cropCfg?.stages?.[currentStage]?.image;
                     const html = img
-                        ? `<img src="../deno/${img}" class="crop-img">`
+                        ? `<img src="${img}" class="crop-img">`
                         : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (isRipe ? '🍎' : '🌱')}</div>`;
                     plotEl.innerHTML = `${html}<span class="stage-indicator">${stageLabel}</span>`;
 
@@ -1669,7 +1669,7 @@
 
                 const plotImg = isBlocked ? blockedPlotImg : emptyPlotImg;
                 if (plotImg) {
-                    plot.style.backgroundImage = `url('../deno/${plotImg}')`;
+                    plot.style.backgroundImage = `url('${plotImg}')`;
                 }
                 if (isBlocked) {
                     plot.style.opacity = '0.5';
@@ -1715,7 +1715,7 @@
 
                 // Get image from stages (default to idle)
                 const stageImage = cfg.stages?.idle?.image || cfg.stages?.ready?.image;
-                const imagePath = stageImage ? `../deno/${stageImage}` : null;
+                const imagePath = stageImage ? `${stageImage}` : null;
 
                 const iconWidth = cfg.size?.width || 80;
                 const iconHtml = imagePath
@@ -1769,14 +1769,14 @@
                     // Use video element for display
                     iconHtml = `
                         <video autoplay loop muted playsinline style="width:100px;height:auto;">
-                            <source src="../deno/${cfg.display.video}" type="video/mp4">
+                            <source src="${cfg.display.video}" type="video/mp4">
                         </video>
                     `;
                 } else {
                     // Use image from stages
                     const stageImage = cfg.stages?.fed?.image || cfg.stages?.ready?.image || cfg.stages?.hungry?.image;
                     if (stageImage) {
-                        iconHtml = `<img src="../deno/${stageImage}" alt="${text(cfg.name)}" style="width:80px;height:auto;">`;
+                        iconHtml = `<img src="${stageImage}" alt="${text(cfg.name)}" style="width:80px;height:auto;">`;
                     } else {
                         // Fallback to icon from config or generic animal emoji
                         const emoji = cfg.icon || '�';
@@ -1810,13 +1810,13 @@
             if (cfg.display?.type === 'video' && cfg.display?.video) {
                 html += `
                     <video autoplay loop muted playsinline style="width:200px;height:auto;border-radius:12px;margin-bottom:15px;">
-                        <source src="../deno/${cfg.display.video}" type="video/mp4">
+                        <source src="${cfg.display.video}" type="video/mp4">
                     </video>
                 `;
             } else {
                 const stageImage = cfg.stages?.fed?.image || cfg.stages?.ready?.image;
                 if (stageImage) {
-                    html += `<img src="../deno/${stageImage}" style="width:150px;height:auto;margin-bottom:15px;">`;
+                    html += `<img src="${stageImage}" style="width:150px;height:auto;margin-bottom:15px;">`;
                 }
             }
 
@@ -2115,7 +2115,7 @@
             const currentImg = cropCfg.stages?.[currentStage]?.image;
             if (currentImg) {
                 html += `<div style="text-align:center;margin-bottom:15px;">
-                    <img src="../deno/${currentImg}" style="width:120px;height:auto;">
+                    <img src="${currentImg}" style="width:120px;height:auto;">
                 </div>`;
             }
 
@@ -2177,7 +2177,7 @@
 
                 html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${bgColor};border:2px solid ${borderColor};border-radius:8px;">
                     <span style="font-size:16px;">${icon}</span>
-                    ${stageImg ? `<img src="../deno/${stageImg}" style="width:35px;height:35px;object-fit:contain;border-radius:4px;">` : ''}
+                    ${stageImg ? `<img src="${stageImg}" style="width:35px;height:35px;object-fit:contain;border-radius:4px;">` : ''}
                     <div style="flex:1;">
                         <div style="font-weight:bold;color:${textColor};">${stageName}${timeRemaining}</div>
                         <div style="font-size:11px;color:#888;">${i === stages.length - 1 ? 'Готово к сбору' : `Длительность: ${timeInfo}`}</div>
@@ -2261,7 +2261,7 @@
                     plotEl.classList.add('empty');
                     plotEl.style.filter = '';
                     if (emptyPlotImg) {
-                        plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
+                        plotEl.style.backgroundImage = `url('${emptyPlotImg}')`;
                     }
                     plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null };
                 }, 800);
@@ -2291,7 +2291,7 @@
             for (const [code, c] of Object.entries(crops || {})) {
                 const seedCount = inventory[`seed_${code}`] || 0;
                 const seedImg = c.stages?.seed?.image;
-                const iconHtml = seedImg ? `<img src="../deno/${seedImg}" style="width:40px;height:40px">` : '🌱';
+                const iconHtml = seedImg ? `<img src="${seedImg}" style="width:40px;height:40px">` : '🌱';
                 const isSelected = selectedSeed === code;
                 const style = isSelected ? 'border: 2px solid #4CAF50; background: rgba(76,175,80,0.2);' : '';
 
@@ -2319,7 +2319,7 @@
             const seedName = document.getElementById('selected-seed-name');
             if (crop) {
                 const img = crop.stages?.seed?.image;
-                seedIcon.innerHTML = img ? `<img src="../deno/${img}" style="width:28px;height:28px">` : '🌱';
+                seedIcon.innerHTML = img ? `<img src="${img}" style="width:28px;height:28px">` : '🌱';
                 seedName.textContent = text(crop.name);
             }
 
@@ -2355,7 +2355,7 @@
                         ${availableCrops.map(([code, c]) => {
                     const seedImg = c.stages?.seed?.image;
                     const iconHtml = seedImg
-                        ? `<img src="../deno/${seedImg}">`
+                        ? `<img src="${seedImg}">`
                         : '🌱';
                     const seedCount = inventory[`seed_${code}`] || 0;
                     return `
@@ -2415,7 +2415,7 @@
             // Show initial seed stage image
             const img = cropCfg?.stages?.seed?.image;
             const html = img
-                ? `<img src="../deno/${img}" class="crop-img">`
+                ? `<img src="${img}" class="crop-img">`
                 : `<div class="crop-img" style="font-size:30px;text-align:center">🌱</div>`;
             plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames['seed']}</span>`;
 
@@ -2464,7 +2464,7 @@
                 plotEl.classList.remove('planted', 'harvesting');
                 plotEl.classList.add('empty');
                 if (emptyPlotImg) {
-                    plotEl.style.backgroundImage = `url('../deno/${emptyPlotImg}')`;
+                    plotEl.style.backgroundImage = `url('${emptyPlotImg}')`;
                 }
             }, 1000);
 
@@ -2561,7 +2561,7 @@
                 let html = '<div class="shop-grid">';
                 for (const [code, c] of Object.entries(crops || {})) {
                     const seedImg = c.stages?.seed?.image;
-                    const iconHtml = seedImg ? `<img src="../deno/${seedImg}">` : '🌱';
+                    const iconHtml = seedImg ? `<img src="${seedImg}">` : '🌱';
                     const owned = inventory[`seed_${code}`] || 0;
                     const isFree = c.buy_silver === 0;
                     html += `<div class="shop-item">
@@ -2597,7 +2597,7 @@
                         const code = key.replace('item_', '');
                         const cropCfg = crops?.[code];
                         const ripeImg = cropCfg?.stages?.ripe?.image;
-                        const iconHtml = ripeImg ? `<img src="../deno/${ripeImg}">` : '📦';
+                        const iconHtml = ripeImg ? `<img src="${ripeImg}">` : '📦';
                         const sellPrice = cropCfg?.sell_silver || cropCfg?.products?.[0]?.sell_silver || 10;
                         totalValue += sellPrice * qty;
 
