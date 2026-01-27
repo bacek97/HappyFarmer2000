@@ -99,6 +99,7 @@ export async function handleBuy(ctx: HandlerContext): Promise<Response> {
     const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
     try {
+        console.log(`[ANIMALS] handleBuy | Method: ${ctx.req.method} | User: ${ctx.userId} | Headers: ${JSON.stringify(Object.fromEntries(ctx.req.headers.entries()))}`);
         if (ctx.req.method !== "POST") {
             return new Response(JSON.stringify({ error: "Method Not Allowed" }), { status: 405, headers });
         }

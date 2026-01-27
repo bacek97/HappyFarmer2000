@@ -653,7 +653,7 @@ async function executeWithHooks(
     db: createDbAPI(userId)
   };
 
-  console.log(`[FSM] Executing ${endpoint.name} for user ${userId}`);
+  console.log(`[FSM] Executing ${endpoint.name} | Method: ${req.method} | User: ${userId} | Headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()))}`);
 
   try {
     // Run BEFORE hooks

@@ -982,10 +982,14 @@
         if (tg) { tg.ready(); tg.expand(); }
 
         async function api(path, options = {}) {
+            console.log(`[API] Request: ${path}`, options);
             try {
                 const headers = options.headers || {};
                 if (tg?.initData) {
                     headers['Authorization'] = tg.initData;
+                }
+                if (options.body && !headers['Content-Type']) {
+                    headers['Content-Type'] = 'application/json';
                 }
                 const res = await fetch(`${API_URL}${path}`, { ...options, headers });
                 const text = await res.text();
