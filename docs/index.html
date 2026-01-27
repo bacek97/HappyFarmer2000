@@ -1212,13 +1212,13 @@
         // Update single stat in DB
         async function updateStat(key, value) {
             await gql(`
-                mutation($key: String!, $value: Int!) {
+                mutation($userId: bigint!, $key: String!, $value: Int!) {
                     insert_user_stats_one(
-                        object: {key: $key, value: $value}
+                        object: {user_id: $userId, key: $key, value: $value}
                         on_conflict: {constraint: user_stats_pkey, update_columns: [value, updated_at]}
                     ) { key }
                 }
-            `, { key, value });
+            `, { userId, key, value });
             inventory[key] = value;
         }
 
@@ -1245,8 +1245,9 @@
 
             // First create the game object
             const data = await gql(`
-                mutation($typeCode: String!, $x: Int!) {
+                mutation($userId: bigint!, $typeCode: String!, $x: Int!) {
                     insert_game_objects_one(object: {
+                        user_id: $userId,
                         type_code: $typeCode,
                         x: $x,
                         y: 0
@@ -1254,7 +1255,7 @@
                         id
                     }
                 }
-            `, { typeCode, x: plotId });
+            `, { userId, typeCode, x: plotId });
 
             console.log('[DB] Created game_object:', data);
 
@@ -2595,6 +2596,31 @@
             } else if (type === 'warehouse') {
                 // Warehouse: show items with total and sell all
                 const crops = await api('/api/configs/crops');
+                const animals = await api('/api/configs/animals');
+                const factories = await api('/api/configs/factories');
+
+                // Build item name lookup from ALL sources
+                const itemNames = {};
+                const itemConfigs = {};
+
+                for (const [c, cfg] of Object.entries(crops || {})) {
+                    itemNames[c] = cfg.name;
+                    itemConfigs[c] = cfg;
+                }
+                for (const [a, cfg] of Object.entries(animals || {})) {
+                    for (const p of cfg.products || []) {
+                        itemNames[p.code] = p.name;
+                        itemConfigs[p.code] = p;
+                    }
+                }
+                for (const [f, cfg] of Object.entries(factories || {})) {
+                    const fullCfg = await api(`/api/configs/factories/${f}`);
+                    for (const p of fullCfg?.products || []) {
+                        itemNames[p.code] = p.name;
+                        itemConfigs[p.code] = p;
+                    }
+                }
+
                 const items = Object.entries(inventory).filter(([k, v]) => k.startsWith('item_') && v > 0);
 
                 if (items.length === 0) {
@@ -2605,16 +2631,16 @@
 
                     for (const [key, qty] of items) {
                         const code = key.replace('item_', '');
-                        const cropCfg = crops?.[code];
-                        const ripeImg = cropCfg?.stages?.ripe?.image;
+                        const itemCfg = itemConfigs[code];
+                        const ripeImg = itemCfg?.stages?.ripe?.image || itemCfg?.image;
                         const iconHtml = ripeImg ? `<img src="${ripeImg}">` : '📦';
-                        const sellPrice = cropCfg?.sell_silver || cropCfg?.products?.[0]?.sell_silver || 10;
+                        const sellPrice = itemCfg?.sell_silver || itemCfg?.products?.[0]?.sell_silver || 10;
                         totalValue += sellPrice * qty;
 
                         html += `<div class="shop-item">
                             <span class="shop-item-qty">${qty}</span>
                             <div class="shop-item-icon">${iconHtml}</div>
-                            <div class="shop-item-name">${text(cropCfg?.name) || code}</div>
+                            <div class="shop-item-name">${text(itemNames[code]) || code}</div>
                             <div class="shop-item-price">${sellPrice} 🪙 / шт</div>
                             <div class="qty-selector">
                                 <button onclick="changeSellQty('${code}', -1, ${qty})">−</button>
