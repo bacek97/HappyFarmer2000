@@ -720,17 +720,18 @@ function handleGetConfigs(category?: string, code?: string): Response {
 
 await scanConfigs();
 
+// Centralized CORS headers
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 // Helper to add CORS headers to any response
 function addCors(response: Response): Response {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  };
-
   // Clone headers and add CORS
   const newHeaders = new Headers(response.headers);
-  for (const [key, value] of Object.entries(corsHeaders)) {
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
     newHeaders.set(key, value);
   }
 
@@ -745,67 +746,58 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // CORS headers for all responses
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  };
-
   // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: CORS_HEADERS });
   }
 
-  if (path === "/v1/auth/claims") {
-    return addCors(await handleAuth(req));
-  }
+  try {
+    if (path === "/v1/auth/claims") {
+      return addCors(await handleAuth(req));
+    }
 
-  if (path === "/v1/actions/create_invoice") {
-    return addCors(await handleCreateInvoice(req));
-  }
+    if (path === "/v1/actions/create_invoice") {
+      return addCors(await handleCreateInvoice(req));
+    }
 
-  if (path === "/v1/webhook/telegram") {
-    return addCors(await handleTelegramWebhook(req));
-  }
+    if (path === "/v1/webhook/telegram") {
+      return addCors(await handleTelegramWebhook(req));
+    }
 
-  // Game API: GET /api/configs/:category?/:code?
-  if (path.startsWith("/api/configs")) {
-    const parts = path.split("/").filter(Boolean);
-    const category = parts[2];
-    const code = parts[3];
-    return addCors(handleGetConfigs(category, code));
-  }
+    // Game API: GET /api/configs/:category?/:code?
+    if (path.startsWith("/api/configs")) {
+      const parts = path.split("/").filter(Boolean);
+      const category = parts[2];
+      const code = parts[3];
+      return addCors(handleGetConfigs(category, code));
+    }
 
-  // NOTE: Crop endpoints (/api/plant, /api/harvest) are now loaded dynamically from crops/FSM.ts
+    // List all available endpoints
+    if (path === "/api/endpoints") {
+      const list = Array.from(ENDPOINTS_REGISTRY.entries()).map(([name, e]) => ({
+        name,
+        path: e.path,
+        module: e.module,
+        hooks: e.hooks.map(h => h.moduleName)
+      }));
+      return addCors(new Response(JSON.stringify(list), { headers: { "Content-Type": "application/json" } }));
+    }
 
-  // List all available endpoints
-  if (path === "/api/endpoints") {
-    const list = Array.from(ENDPOINTS_REGISTRY.entries()).map(([name, e]) => ({
-      name,
-      path: e.path,
-      module: e.module,
-      hooks: e.hooks.map(h => h.moduleName)
-    }));
-    return new Response(JSON.stringify(list), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
-  // Dynamic FSM endpoints with hooks
-  for (const [name, endpoint] of ENDPOINTS_REGISTRY) {
-    if (endpoint.path === path) {
-      try {
+    // Dynamic FSM endpoints with hooks
+    for (const [name, endpoint] of ENDPOINTS_REGISTRY) {
+      if (endpoint.path === path) {
         const claims = await getHasuraClaims(req.headers.get("authorization"));
         const userId = claims?.["X-Hasura-User-Id"] || "0";
         return addCors(await executeWithHooks(endpoint, req, url, userId));
-      } catch (e) {
-        console.error(`[FSM] Error in ${name}:`, e);
-        return new Response(JSON.stringify({ error: (e as Error).message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
       }
     }
-  }
 
-  return new Response("Not Found", { status: 404, headers: corsHeaders });
+    return addCors(new Response("Not Found", { status: 404 }));
+  } catch (e) {
+    console.error(`[SERVER] Error:`, e);
+    return addCors(new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    }));
+  }
 });
