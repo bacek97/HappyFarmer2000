@@ -1739,147 +1739,125 @@
         async function loadAnimals() {
             const animalsLayer = document.getElementById('animals-layer');
             if (!animalsLayer) return;
+            animalsLayer.innerHTML = '';
 
-            // Fetch all animal configs from API
-            const animals = await api('/api/configs/animals');
-            if (!animals) {
-                console.log('[ANIMALS] No animals config found');
+            // Fetch owned animals from API
+            const ownedAnimals = await api('/api/animals');
+            const animalsConfig = await api('/api/configs/animals');
+
+            if (!ownedAnimals || !animalsConfig) {
+                console.log('[ANIMALS] No animals found or config missing');
                 return;
             }
 
-            console.log('[ANIMALS] Loaded configs:', Object.keys(animals));
+            ownedAnimals.forEach(animal => {
+                const code = animal.type_code.replace('animal_', '');
+                const cfg = animalsConfig[code];
+                if (!cfg) return;
 
-            for (const [code, cfg] of Object.entries(animals)) {
-                // Position must be defined in config, skip if not
-                if (!cfg.position) {
-                    console.warn(`[ANIMALS] Skipping ${code} - no position defined in config`);
-                    continue;
-                }
-                const position = cfg.position;
+                const params = {};
+                (animal.params || []).forEach(p => params[p.key] = p.value);
+                const stage = params.stage || 'hungry';
 
                 const animalEl = document.createElement('div');
                 animalEl.className = 'animal-object';
-                animalEl.dataset.code = code;
+                animalEl.dataset.id = animal.id;
                 animalEl.style.left = '50%';
                 animalEl.style.top = '50%';
-                animalEl.style.transform = `translate(${position.x}px, ${position.y}px)`;
+                animalEl.style.transform = `translate(${animal.x}px, ${animal.y}px)`;
 
-                // Check if animal has video display
-                let iconHtml = '';
-                if (cfg.display?.type === 'video' && cfg.display?.video) {
-                    // Use video element for display
-                    iconHtml = `
-                        <video autoplay loop muted playsinline style="width:100px;height:auto;">
-                            <source src="${cfg.display.video}" type="video/mp4">
-                        </video>
-                    `;
-                } else {
-                    // Use image from stages
-                    const stageImage = cfg.stages?.fed?.image || cfg.stages?.ready?.image || cfg.stages?.hungry?.image;
-                    if (stageImage) {
-                        iconHtml = `<img src="${stageImage}" alt="${text(cfg.name)}" style="width:80px;height:auto;">`;
-                    } else {
-                        // Fallback to icon from config or generic animal emoji
-                        const emoji = cfg.icon || '�';
-                        iconHtml = `<span style="font-size:60px">${emoji}</span>`;
-                    }
-                }
+                const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
+                const iconHtml = stageImg.startsWith('fsm/') || stageImg.startsWith('/')
+                    ? `<img src="${stageImg}" style="width:80px;height:auto;">`
+                    : `<span style="font-size:60px">${stageImg}</span>`;
 
-                // Default status indicator (can be enhanced with actual game state)
-                const statusClass = '';
-                const statusIcon = '😊';
+                const statusIcon = stage === 'ready' ? '🥛' : stage === 'fed' ? '⏳' : '😋';
 
                 animalEl.innerHTML = `
                     <div class="animal-icon">${iconHtml}</div>
                     <div class="animal-label">${text(cfg.name)}</div>
-                    <div class="animal-status ${statusClass}">${statusIcon}</div>
+                    <div class="animal-status">${statusIcon}</div>
                 `;
 
-                animalEl.onclick = () => showAnimalModal(code, cfg);
+                animalEl.onclick = () => showAnimalModal(animal.id, code, cfg, params);
                 animalsLayer.appendChild(animalEl);
-            }
+            });
         }
 
         // Show modal for animal details
-        async function showAnimalModal(code, cfg) {
+        async function showAnimalModal(id, code, cfg, params) {
             document.getElementById('modal-title').textContent = text(cfg.name);
             document.getElementById('modal-footer').style.display = 'none';
 
-            let html = `<div style="text-align:center; padding:20px;">`;
+            const stage = params.stage || 'hungry';
+            const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
 
-            // Display video or image
-            if (cfg.display?.type === 'video' && cfg.display?.video) {
-                html += `
-                    <video autoplay loop muted playsinline style="width:200px;height:auto;border-radius:12px;margin-bottom:15px;">
-                        <source src="${cfg.display.video}" type="video/mp4">
-                    </video>
-                `;
+            let html = `<div style="text-align:center; padding:20px;">`;
+            if (stageImg.startsWith('fsm/') || stageImg.startsWith('/')) {
+                html += `<img src="${stageImg}" style="width:150px;height:auto;margin-bottom:15px;border-radius:12px;">`;
             } else {
-                const stageImage = cfg.stages?.fed?.image || cfg.stages?.ready?.image;
-                if (stageImage) {
-                    html += `<img src="${stageImage}" style="width:150px;height:auto;margin-bottom:15px;">`;
-                }
+                html += `<div style="font-size:80px;margin-bottom:15px;">${stageImg}</div>`;
             }
 
             html += `
                 <p style="color:#5D4037;margin-bottom:15px;">${text(cfg.description)}</p>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;background:rgba(255,255,255,0.5);padding:15px;border-radius:10px;">
-                    <div><b>💰 Цена:</b> ${cfg.buy_silver} 🪙</div>
-                    <div><b>⭐ Опыт:</b> ${cfg.exp}</div>
-                    <div><b>📊 Уровень:</b> ${cfg.level}</div>
-                    <div><b>🍖 Кормить:</b> каждые ${Math.floor(cfg.feed_interval / 3600)}ч</div>
+                <div style="background:rgba(255,255,255,0.5);padding:15px;border-radius:10px;margin-bottom:15px;text-align:left;">
+                    <div><b>Статус:</b> ${text(cfg.stages?.[stage]?.messages) || stage}</div>
+                    ${stage === 'fed' ? `<div><b>Готов через:</b> ${Math.max(0, Math.floor((params.ready_at - Date.now() / 1000) / 60))} мин</div>` : ''}
                 </div>
             `;
 
-            // Products
-            if (cfg.products && cfg.products.length > 0) {
-                html += `<div style="margin-top:15px;"><b>📦 Продукция:</b></div>`;
-                html += `<div class="shop-grid" style="margin-top:10px;">`;
-                for (const product of cfg.products) {
-                    const productIcon = product.code.includes('egg') ? '🥚' :
-                        product.code.includes('milk') ? '🥛' :
-                            product.code.includes('meat') ? '🥩' :
-                                product.code.includes('bone') ? '🦴' :
-                                    product.code.includes('guard') ? '🛡️' : '📦';
-                    html += `
-                        <div class="shop-item">
-                            <div class="shop-item-icon">${productIcon}</div>
-                            <div class="shop-item-name">${text(product.name)}</div>
-                            <div class="shop-item-price">${product.sell_silver > 0 ? product.sell_silver + ' 🪙' : 'Бонус'}</div>
-                            ${product.produce_time ? `<div style="font-size:10px;color:#888">⏱ ${Math.floor(product.produce_time / 60)}мин</div>` : ''}
-                        </div>
-                    `;
-                }
-                html += `</div>`;
+            if (stage === 'hungry') {
+                html += `<button onclick="feedAnimal(${id})" style="width:100%;padding:12px;background:#4CAF50;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">🍖 Покормить</button>`;
+            } else if (stage === 'ready') {
+                html += `<button onclick="collectAnimalProduct(${id})" style="width:100%;padding:12px;background:#FF9800;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">🥛 Собрать продукцию</button>`;
+            } else {
+                html += `<button disabled style="width:100%;padding:12px;background:#ccc;color:#666;border:none;border-radius:8px;font-weight:bold;">⏳ Ожидание...</button>`;
             }
-
-            // Actions
-            html += `
-                <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
-                    <button onclick="feedAnimal('${code}')" style="padding:10px 20px;background:linear-gradient(135deg, #4CAF50, #388E3C);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">
-                        🍖 Покормить
-                    </button>
-                    <button onclick="collectProduct('${code}')" style="padding:10px 20px;background:linear-gradient(135deg, #FF9800, #F57C00);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">
-                        📦 Собрать
-                    </button>
-                </div>
-            `;
 
             html += `</div>`;
             document.getElementById('modal-body').innerHTML = html;
             document.getElementById('modal').classList.add('active');
         }
 
-        // Placeholder functions for animal interactions
-        async function feedAnimal(code) {
-            showToast(`${code} покормлен! 🍖`, 'success');
-            // TODO: Implement actual feeding logic with server API
+        async function feedAnimal(id) {
+            const res = await api('/api/feed_animal', { method: 'POST', body: JSON.stringify({ id }) });
+            if (res.success) {
+                showToast('Животное покормлено!', 'success');
+                closeModal();
+                loadAnimals();
+            } else {
+                showToast(res.error || 'Ошибка кормления', 'error');
+            }
         }
 
-        async function collectProduct(code) {
-            showToast(`Продукция ${code} собрана! 📦`, 'success');
-            // TODO: Implement actual collection logic with server API
+        async function collectAnimalProduct(id) {
+            const res = await api('/api/collect_animal', { method: 'POST', body: JSON.stringify({ id }) });
+            if (res.success) {
+                showToast(`Собрано: ${res.product} x${res.count}`, 'success');
+                closeModal();
+                loadInventory();
+                loadAnimals();
+            } else {
+                showToast(res.error || 'Ошибка сбора', 'error');
+            }
         }
+
+        async function buyAnimal(code) {
+            const res = await api('/api/buy_animal', { method: 'POST', body: JSON.stringify({ code }) });
+            if (res.success) {
+                showToast('Животное куплено!', 'success');
+                closeModal();
+                loadInventory();
+                loadAnimals();
+            } else {
+                showToast(res.error || 'Ошибка покупки', 'error');
+            }
+        }
+
+        window.feedAnimal = feedAnimal;
+        window.collectAnimalProduct = collectAnimalProduct;
+        window.buyAnimal = buyAnimal;
 
         window.feedAnimal = feedAnimal;
         window.collectProduct = collectProduct;
@@ -2567,9 +2545,12 @@
             document.getElementById('modal-footer').style.display = 'none';
 
             if (type === 'shop') {
-                // Shop: buy seeds with quantity selector
+                // Shop: buy seeds and animals
                 const crops = await api('/api/configs/crops');
-                let html = '<div class="shop-grid">';
+                const animals = await api('/api/configs/animals');
+
+                let html = '<div style="padding:10px;"><h3 style="margin-bottom:10px;color:#5D4037;">🌱 Семена</h3></div>';
+                html += '<div class="shop-grid">';
                 for (const [code, c] of Object.entries(crops || {})) {
                     const seedImg = c.stages?.seed?.image;
                     const iconHtml = seedImg ? `<img src="${seedImg}">` : '🌱';
@@ -2586,6 +2567,26 @@
                             <button onclick="changeQty('${code}', 1)">+</button>
                         </div>
                         <button onclick="buySeeds('${code}', ${c.buy_silver})" style="margin-top:6px;width:100%;padding:6px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer">
+                            Купить
+                        </button>
+                    </div>`;
+                }
+                html += '</div>';
+
+                html += '<div style="padding:10px;margin-top:20px;"><h3 style="margin-bottom:10px;color:#5D4037;">🐄 Животные</h3></div>';
+                html += '<div class="shop-grid">';
+                for (const [code, c] of Object.entries(animals || {})) {
+                    if (code === 'dog') continue; // Dog is special or handled elsewhere
+                    const stageImg = c.stages?.fed?.image || c.icon;
+                    const iconHtml = stageImg.startsWith('fsm/') || stageImg.startsWith('/')
+                        ? `<img src="${stageImg}">`
+                        : `<span style="font-size:40px">${stageImg}</span>`;
+
+                    html += `<div class="shop-item">
+                        <div class="shop-item-icon">${iconHtml}</div>
+                        <div class="shop-item-name">${text(c.name)}</div>
+                        <div class="shop-item-price">${c.buy_silver} 🪙</div>
+                        <button onclick="buyAnimal('${code}')" style="margin-top:6px;width:100%;padding:6px;background:#FF9800;color:white;border:none;border-radius:4px;cursor:pointer">
                             Купить
                         </button>
                     </div>`;
