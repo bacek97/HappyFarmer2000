@@ -69,7 +69,7 @@
             },
             "type": "terminal",
             "count": 5,
-            "sell_silver": 100
+            "sell_silver": 101
         }
     ]
 }
