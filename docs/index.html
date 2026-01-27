@@ -2847,6 +2847,15 @@
 
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
+        // Close modals on outside click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') closeModal();
+        });
+
+        document.getElementById('submodal').addEventListener('click', (e) => {
+            if (e.target.id === 'submodal') closeSubmodal();
+        });
+
         init();
     </script>
 </body>
