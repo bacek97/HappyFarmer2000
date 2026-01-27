@@ -968,6 +968,8 @@
         const LANG = 'ru';
         let configs = {}, currentTool = 'plant', plots = [];
         let wasDragging = false; // Global flag to differentiate click vs drag
+        const factoryElements = {}; // Stores references to factory DOM elements
+        const animalElements = {}; // Stores references to animal DOM elements
 
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.ready(); tg.expand(); }
@@ -1705,7 +1707,7 @@
         async function loadMapObjects() {
             const factoriesLayer = document.getElementById('factories-layer');
             if (!factoriesLayer) return;
-            factoriesLayer.innerHTML = '';
+
             const factories = await api('/api/configs/factories');
             const factoryStates = await api('/api/factories');
             const statesMap = {};
@@ -1718,39 +1720,42 @@
             for (const [code, cfg] of Object.entries(factories || {})) {
                 if (!cfg.position) continue; // Skip factories without position
 
-                const isDecoration = cfg.decoration === true;
-                const obj = document.createElement('div');
-                obj.className = isDecoration ? 'map-object decoration' : 'map-object';
-                obj.style.left = `${cfg.position.x + 600}px`;
-                obj.style.top = `${cfg.position.y + 450}px`;
-                if (isDecoration) {
-                    obj.style.pointerEvents = 'none';
-                    obj.style.cursor = 'default';
-                }
-
                 const state = statesMap[code] || {};
                 const isReady = state.ready_at && (Date.now() / 1000 >= parseInt(state.ready_at));
-
                 const stageImage = isReady ? (cfg.stages?.ready?.image || cfg.stages?.idle?.image) : (state.stage === 'processing' ? (cfg.stages?.processing?.image || cfg.stages?.idle?.image) : cfg.stages?.idle?.image);
                 const imagePath = stageImage ? `${stageImage}` : null;
-
                 const iconWidth = cfg.size?.width || 80;
                 const iconHtml = imagePath
                     ? `<img src="${imagePath}" alt="${text(cfg.name)}" style="width:${iconWidth}px;height:auto;">`
                     : `<span style="font-size:70px">${cfg.icon || '🏭'}</span>`;
-
                 const statusIcon = isReady ? '✅' : (state.stage === 'processing' ? '⏳' : '');
+                const isDecoration = cfg.decoration === true;
 
-                obj.innerHTML = isDecoration
+                let obj = factoryElements[code];
+                if (!obj) {
+                    obj = document.createElement('div');
+                    obj.className = isDecoration ? 'map-object decoration' : 'map-object';
+                    obj.style.left = `${cfg.position.x + 600}px`;
+                    obj.style.top = `${cfg.position.y + 450}px`;
+                    if (isDecoration) {
+                        obj.style.pointerEvents = 'none';
+                        obj.style.cursor = 'default';
+                    } else {
+                        obj.onclick = () => showFactoryModal(code, cfg, state);
+                    }
+                    factoriesLayer.appendChild(obj);
+                    factoryElements[code] = obj;
+                }
+
+                const newContent = isDecoration
                     ? `<div class="object-icon">${iconHtml}</div>`
                     : `<div class="object-icon">${iconHtml}</div>
                        <div class="object-label">${text(cfg.name)}</div>
                        ${statusIcon ? `<div class="animal-status" style="top:-10px;right:-10px;background:${isReady ? '#4CAF50' : '#FF9800'}">${statusIcon}</div>` : ''}`;
 
-                if (!isDecoration) {
-                    obj.onclick = () => showFactoryModal(code, cfg, state);
+                if (obj.innerHTML !== newContent) {
+                    obj.innerHTML = newContent;
                 }
-                factoriesLayer.appendChild(obj);
             }
         }
 
@@ -1758,7 +1763,6 @@
         async function loadAnimals() {
             const animalsLayer = document.getElementById('animals-layer');
             if (!animalsLayer) return;
-            animalsLayer.innerHTML = '';
 
             // Fetch owned animals from API
             const ownedAnimals = await api('/api/animals');
@@ -1769,6 +1773,8 @@
                 return;
             }
 
+            const updatedIds = new Set();
+
             ownedAnimals.forEach(animal => {
                 const code = animal.type_code.replace('animal_', '');
                 const cfg = animalsConfig[code];
@@ -1777,13 +1783,6 @@
                 const params = {};
                 (animal.params || []).forEach(p => params[p.key] = p.value);
                 const stage = params.stage || 'hungry';
-
-                const animalEl = document.createElement('div');
-                animalEl.className = 'animal-object';
-                animalEl.dataset.id = animal.id;
-                animalEl.style.left = `${animal.x + 600}px`;
-                animalEl.style.top = `${animal.y + 450}px`;
-
                 const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
                 const iconHtml = stageImg.startsWith('fsm/') || stageImg.startsWith('/')
                     ? `<img src="${stageImg}" style="width:80px;height:auto;">`
@@ -1791,14 +1790,44 @@
 
                 const statusIcon = stage === 'ready' ? '🥛' : stage === 'fed' ? '⏳' : '😋';
 
-                animalEl.innerHTML = `
+                let animalEl = animalElements[animal.id];
+                if (!animalEl) {
+                    animalEl = document.createElement('div');
+                    animalEl.className = 'animal-object';
+                    animalEl.dataset.id = animal.id;
+                    animalEl.style.left = `${animal.x + 600}px`;
+                    animalEl.style.top = `${animal.y + 450}px`;
+                    animalEl.onclick = () => showAnimalModal(animal.id, code, cfg, params);
+                    animalsLayer.appendChild(animalEl);
+                    animalElements[animal.id] = animalEl;
+                }
+
+                const newContent = `
                     <div class="animal-icon">${iconHtml}</div>
                     <div class="animal-label">${text(cfg.name)}</div>
                     <div class="animal-status">${statusIcon}</div>
                 `;
 
-                animalEl.onclick = () => showAnimalModal(animal.id, code, cfg, params);
-                animalsLayer.appendChild(animalEl);
+                if (animalEl.innerHTML !== newContent) {
+                    animalEl.innerHTML = newContent;
+                }
+
+                // Update position in case it changed (e.g. animal moved)
+                animalEl.style.left = `${animal.x + 600}px`;
+                animalEl.style.top = `${animal.y + 450}px`;
+
+                updatedIds.add(animal.id.toString());
+            });
+
+            // Remove animals that are no longer owned
+            Object.keys(animalElements).forEach(id => {
+                if (!updatedIds.has(id)) {
+                    const el = animalElements[id];
+                    if (el && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                    }
+                    delete animalElements[id];
+                }
             });
         }
 
