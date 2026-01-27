@@ -28,6 +28,7 @@
             overflow: auto;
             -webkit-overflow-scrolling: touch;
             background: #1a3a1a;
+            cursor: grab;
         }
 
         /* Game world - fixed size */
@@ -1564,8 +1565,37 @@
             countdownInterval = setInterval(updateAllPlotTimers, 1000);
         }
 
-        // Map panning functionality
-        let isPanning = false, startX = 0, startY = 0, panX = 0, panY = 0;
+        function initDesktopScroll() {
+            const game = document.getElementById('game');
+            let isDown = false;
+            let startX, startY, scrollLeft, scrollTop;
+
+            game.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.map-object, .plot, .tool, .action-btn')) return;
+                isDown = true;
+                game.style.cursor = 'grabbing';
+                startX = e.pageX - game.offsetLeft;
+                startY = e.pageY - game.offsetTop;
+                scrollLeft = game.scrollLeft;
+                scrollTop = game.scrollTop;
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDown = false;
+                game.style.cursor = 'grab';
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - game.offsetLeft;
+                const y = e.pageY - game.offsetTop;
+                const walkX = (x - startX);
+                const walkY = (y - startY);
+                game.scrollLeft = scrollLeft - walkX;
+                game.scrollTop = scrollTop - walkY;
+            });
+        }
 
         function centerMap() {
             const game = document.getElementById('game');
@@ -1577,6 +1607,8 @@
         }
 
         async function init() {
+            initDesktopScroll();
+            centerMap();
             const user = tg?.initDataUnsafe?.user;
             // Update level circle
             const levelCircle = document.getElementById('level-circle');
