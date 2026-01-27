@@ -25,28 +25,28 @@
                 "en": "Hungry",
                 "ru": "Голодный"
             },
-            "image": "/images/animals/cow/hungry.png"
+            "image": "fsm/animals/cow/stage_1.png"
         },
         "fed": {
             "messages": {
                 "en": "Fed",
                 "ru": "Сытый"
             },
-            "image": "/images/animals/cow/fed.png"
+            "image": "fsm/animals/cow/stage_1.png"
         },
         "ready": {
             "messages": {
                 "en": "Ready",
                 "ru": "Готов"
             },
-            "image": "/images/animals/cow/ready.png"
+            "image": "fsm/animals/cow/stage_1.png"
         },
         "sick": {
             "messages": {
                 "en": "Sick",
                 "ru": "Болен"
             },
-            "image": "/images/animals/cow/sick.png"
+            "image": "fsm/animals/cow/stage_1.png"
         }
     },
     "products": [
