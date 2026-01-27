@@ -981,15 +981,25 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.ready(); tg.expand(); }
 
-        async function api(path) {
+        async function api(path, options = {}) {
             try {
-                const headers = {};
+                const headers = options.headers || {};
                 if (tg?.initData) {
                     headers['Authorization'] = tg.initData;
                 }
-                return await (await fetch(`${API_URL}${path}`, { headers })).json();
+                const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+                const text = await res.text();
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Non-JSON response:', text);
+                    return { success: false, error: text.slice(0, 100) || 'Server error' };
+                }
             }
-            catch (e) { console.error('API Error:', e); return null; }
+            catch (e) {
+                console.error('API Error:', e);
+                return { success: false, error: e.message };
+            }
         }
 
         function text(obj) { return obj?.[LANG] || obj?.en || ''; }

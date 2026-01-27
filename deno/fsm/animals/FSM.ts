@@ -99,6 +99,10 @@ export async function handleBuy(ctx: HandlerContext): Promise<Response> {
     const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
     try {
+        if (ctx.req.method !== "POST") {
+            return new Response(JSON.stringify({ error: "Method Not Allowed" }), { status: 405, headers });
+        }
+
         if (ctx.userId === "0") {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
         }
@@ -177,6 +181,10 @@ export async function handleFeed(ctx: HandlerContext): Promise<Response> {
     const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
     try {
+        if (ctx.req.method !== "POST") {
+            return new Response(JSON.stringify({ error: "Method Not Allowed" }), { status: 405, headers });
+        }
+
         if (ctx.userId === "0") {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
         }
@@ -233,6 +241,10 @@ export async function handleCollect(ctx: HandlerContext): Promise<Response> {
     const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
     try {
+        if (ctx.req.method !== "POST") {
+            return new Response(JSON.stringify({ error: "Method Not Allowed" }), { status: 405, headers });
+        }
+
         if (ctx.userId === "0") {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
         }
