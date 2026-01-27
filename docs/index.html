@@ -1859,9 +1859,6 @@
         window.collectAnimalProduct = collectAnimalProduct;
         window.buyAnimal = buyAnimal;
 
-        window.feedAnimal = feedAnimal;
-        window.collectProduct = collectProduct;
-
         async function showFactoryModal(code, cfg) {
             document.getElementById('modal-title').textContent = text(cfg.name);
             const crops = await api('/api/configs/crops');
