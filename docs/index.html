@@ -966,7 +966,7 @@
             ? 'http://localhost:8000'
             : 'https://happyfarmer2000.bacek97.deno.net';
         const LANG = 'ru';
-        let configs = {}, currentTool = 'plant', plots = [];
+        let CONFIGS = {}, currentTool = 'plant', plots = [];
         let wasDragging = false; // Global flag to differentiate click vs drag
         const factoryElements = {}; // Stores references to factory DOM elements
         const animalElements = {}; // Stores references to animal DOM elements
@@ -1512,7 +1512,7 @@
             const levelCircle = document.getElementById('level-circle');
             if (levelCircle) levelCircle.textContent = '5';
 
-            configs = await api('/api/configs');
+            CONFIGS = await api('/api/configs');
             const plotCfg = await api('/api/configs/plots/plot');
 
             // Load crops config for quick seed selection
