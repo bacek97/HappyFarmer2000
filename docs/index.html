@@ -970,6 +970,7 @@
         let wasDragging = false; // Global flag to differentiate click vs drag
         const factoryElements = {}; // Stores references to factory DOM elements
         const animalElements = {}; // Stores references to animal DOM elements
+        let countdownInterval = null; // Global timer for plot updates
 
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.ready(); tg.expand(); }
@@ -1288,7 +1289,6 @@
         startCountdownTimers();
 
         // ===== Countdown Timer System =====
-        let countdownInterval = null;
 
         function formatTime(seconds) {
             if (seconds <= 0) return '0s';
