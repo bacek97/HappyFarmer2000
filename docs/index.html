@@ -1712,6 +1712,13 @@
         async function loadMapObjects() {
             const factoriesLayer = document.getElementById('factories-layer');
             const factories = await api('/api/configs/factories');
+            const factoryStates = await api('/api/factories');
+            const statesMap = {};
+            (factoryStates || []).forEach(s => {
+                const params = {};
+                (s.params || []).forEach(p => params[p.key] = p.value);
+                statesMap[s.type_code.replace('factory_', '')] = params;
+            });
 
             for (const [code, cfg] of Object.entries(factories || {})) {
                 if (!cfg.position) continue; // Skip factories without position
@@ -1719,7 +1726,6 @@
                 const isDecoration = cfg.decoration === true;
                 const obj = document.createElement('div');
                 obj.className = isDecoration ? 'map-object decoration' : 'map-object';
-                // Position from center using translate for proper background attachment
                 obj.style.left = '50%';
                 obj.style.top = '50%';
                 obj.style.transform = `translate(${cfg.position.x}%, ${cfg.position.y}%)`;
@@ -1728,8 +1734,10 @@
                     obj.style.cursor = 'default';
                 }
 
-                // Get image from stages (default to idle)
-                const stageImage = cfg.stages?.idle?.image || cfg.stages?.ready?.image;
+                const state = statesMap[code] || {};
+                const isReady = state.ready_at && (Date.now() / 1000 >= parseInt(state.ready_at));
+
+                const stageImage = isReady ? (cfg.stages?.ready?.image || cfg.stages?.idle?.image) : (state.stage === 'processing' ? (cfg.stages?.processing?.image || cfg.stages?.idle?.image) : cfg.stages?.idle?.image);
                 const imagePath = stageImage ? `${stageImage}` : null;
 
                 const iconWidth = cfg.size?.width || 80;
@@ -1737,13 +1745,16 @@
                     ? `<img src="${imagePath}" alt="${text(cfg.name)}" style="width:${iconWidth}px;height:auto;">`
                     : `<span style="font-size:70px">${cfg.icon || '🏭'}</span>`;
 
-                // Decorations don't have labels
+                const statusIcon = isReady ? '✅' : (state.stage === 'processing' ? '⏳' : '');
+
                 obj.innerHTML = isDecoration
                     ? `<div class="object-icon">${iconHtml}</div>`
-                    : `<div class="object-icon">${iconHtml}</div><div class="object-label">${text(cfg.name)}</div>`;
+                    : `<div class="object-icon">${iconHtml}</div>
+                       <div class="object-label">${text(cfg.name)}</div>
+                       ${statusIcon ? `<div class="animal-status" style="top:-10px;right:-10px;background:${isReady ? '#4CAF50' : '#FF9800'}">${statusIcon}</div>` : ''}`;
 
                 if (!isDecoration) {
-                    obj.onclick = () => showFactoryModal(code, cfg);
+                    obj.onclick = () => showFactoryModal(code, cfg, state);
                 }
                 factoriesLayer.appendChild(obj);
             }
@@ -1873,19 +1884,63 @@
         window.collectAnimalProduct = collectAnimalProduct;
         window.buyAnimal = buyAnimal;
 
-        async function showFactoryModal(code, cfg) {
+        async function showFactoryModal(code, cfg, state = {}) {
             document.getElementById('modal-title').textContent = text(cfg.name);
+            document.getElementById('modal-footer').style.display = 'none';
+
+            const readyAt = parseInt(state.ready_at || "0");
+            const isProcessing = state.stage === 'processing';
+            const isReady = readyAt > 0 && (Date.now() / 1000 >= readyAt);
+
+            if (isReady) {
+                const recipe = cfg.recipes?.find(r => r.code === state.recipe_code);
+                const product = recipe?.products?.[0];
+                const productIcon = product?.code?.includes('juice') ? '🧃' : product?.code?.includes('chips') ? '🍟' : '📦';
+
+                let html = `<div style="text-align:center; padding:20px;">
+                    <div style="font-size:80px;margin-bottom:15px;">${productIcon}</div>
+                    <p style="color:#5D4037;margin-bottom:15px;"><b>${text(recipe?.name)}</b> готов!</p>
+                    <button onclick="collectProduction('${code}')" style="width:100%;padding:12px;background:#4CAF50;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">📦 Собрать продукцию</button>
+                </div>`;
+                document.getElementById('modal-body').innerHTML = html;
+                document.getElementById('modal').classList.add('active');
+                return;
+            }
+
+            if (isProcessing) {
+                const recipe = cfg.recipes?.find(r => r.code === state.recipe_code);
+                const totalTime = recipe?.time || 300;
+                const elapsed = totalTime - (readyAt - Date.now() / 1000);
+                const progress = Math.min(100, (elapsed / totalTime) * 100);
+
+                let html = `<div style="text-align:center; padding:20px;">
+                    <div style="font-size:80px;margin-bottom:15px;animation: pulse 2s infinite;">🏭</div>
+                    <p style="color:#5D4037;margin-bottom:15px;">Производство: <b>${text(recipe?.name)}</b></p>
+                    <div style="background:#ddd;border-radius:10px;height:20px;margin-bottom:10px;overflow:hidden;">
+                        <div style="background:linear-gradient(90deg, #FF9800, #F57C00);height:100%;width:${progress}%;transition:width 1s linear;"></div>
+                    </div>
+                    <p style="font-size:14px;color:#666;">Осталось: ${Math.max(0, Math.ceil(readyAt - Date.now() / 1000))} сек</p>
+                </div>`;
+                document.getElementById('modal-body').innerHTML = html;
+                document.getElementById('modal').classList.add('active');
+
+                // Refresh modal every second
+                setTimeout(() => {
+                    if (document.getElementById('modal').classList.contains('active')) {
+                        showFactoryModal(code, cfg, state);
+                    }
+                }, 1000);
+                return;
+            }
+
             const crops = await api('/api/configs/crops');
             const animals = await api('/api/configs/animals');
             const factories = await api('/api/configs/factories');
 
-            // Build item name lookup from crops, animal products, AND factory products
             const itemNames = {};
-            // Add crops
             for (const [cropCode, cropCfg] of Object.entries(crops || {})) {
                 itemNames[cropCode] = cropCfg.name;
             }
-            // Add animal products
             for (const [animalCode, animalCfg] of Object.entries(animals || {})) {
                 for (const product of animalCfg.products || []) {
                     if (product.code && product.name) {
@@ -1893,7 +1948,6 @@
                     }
                 }
             }
-            // Add factory products
             for (const [factoryCode, factoryCfg] of Object.entries(factories || {})) {
                 const fullCfg = await api(`/api/configs/factories/${factoryCode}`);
                 for (const product of fullCfg?.products || []) {
@@ -1907,7 +1961,6 @@
             html += '<div class="shop-grid">';
 
             for (const recipe of cfg.recipes || []) {
-                // Check ingredients
                 let ingredientsHtml = '';
                 let canProduce = true;
 
@@ -1930,7 +1983,6 @@
                     ? `startProduction('${code}','${recipe.code}')`
                     : '';
 
-                // Get product icon
                 const product = recipe.products?.[0];
                 const productIcon = product?.code?.includes('juice') ? '🧃' : product?.code?.includes('chips') ? '🍟' : '📦';
 
@@ -1951,47 +2003,40 @@
             document.getElementById('modal').classList.add('active');
         }
 
-        // Store current factory configs for startProduction
-        let factoryConfigs = {};
-
         async function startProduction(factoryCode, recipeCode) {
-            // Get factory config
-            const cfg = await api(`/api/configs/factories/${factoryCode}`);
-            const recipe = cfg?.recipes?.find(r => r.code === recipeCode);
-            if (!recipe) {
-                alert('Рецепт не найден!');
-                return;
+            const res = await api('/api/start_production', {
+                method: 'POST',
+                body: JSON.stringify({ factoryCode, recipeCode })
+            });
+
+            if (res.success) {
+                showToast('Производство запущено!', 'success');
+                closeModal();
+                loadInventory();
+                loadMapObjects();
+            } else {
+                showToast(res.error || 'Ошибка запуска', 'error');
             }
+        }
 
-            // Check and deduct ingredients
-            for (const input of recipe.inputs || []) {
-                const itemKey = `item_${input.item}`;
-                const have = inventory[itemKey] || 0;
-                if (have < input.count) {
-                    alert(`Недостаточно ${input.item}!`);
-                    return;
-                }
+        async function collectProduction(factoryCode) {
+            const res = await api('/api/collect_production', {
+                method: 'POST',
+                body: JSON.stringify({ factoryCode })
+            });
+
+            if (res.success) {
+                showToast('Продукция собрана!', 'success');
+                closeModal();
+                loadInventory();
+                loadMapObjects();
+            } else {
+                showToast(res.error || 'Ошибка сбора', 'error');
             }
-
-            // Deduct ingredients
-            for (const input of recipe.inputs || []) {
-                await modifyStat(`item_${input.item}`, -input.count);
-            }
-
-            closeModal();
-
-            // Add products after production time (simplified - instant for demo)
-            for (const product of recipe.products || []) {
-                await modifyStat(`item_${product.code}`, product.count);
-            }
-
-            // Add experience
-            await modifyStat('exp', recipe.exp || 10);
-
-            alert(`${text(recipe.name)} готов!`);
         }
 
         window.startProduction = startProduction;
+        window.collectProduction = collectProduction;
 
         async function onPlotClick(id) {
             const plot = plots[id];
