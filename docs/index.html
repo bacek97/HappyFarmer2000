@@ -1128,21 +1128,6 @@
             }, duration);
         }
 
-        function restorePlotVisual(plotId, plotState) {
-            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            if (!plotEl || !plotState) return;
-
-            plotEl.classList.remove('empty', 'harvesting', 'pending', 'error');
-            plotEl.classList.add('planted');
-
-            const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
-            const stage = plotState.stage || 'ripe';
-            const img = plotState.config?.stages?.[stage]?.image;
-            const html = img
-                ? `<img src="${img}" class="crop-img">`
-                : `<div class="crop-img" style="font-size:30px;text-align:center">${stage === 'ripe' ? '🍎' : '🌱'}</div>`;
-            plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[stage] || '✓'}</span>`;
-        }
 
         // Check online status and sync pending actions
         async function checkAndSyncPendingActions() {
@@ -1243,76 +1228,6 @@
         }
 
         // ===== Planted Crops DB =====
-
-        // Save planted crop to DB
-        async function savePlantedCrop(plotId, cropCode, stage, plantedAt) {
-            console.log('[DB] Saving crop:', { plotId, cropCode, stage, plantedAt });
-            const typeCode = `crop_${cropCode}`;
-            const plantedAtStr = plantedAt.toString();
-
-            // First create the game object
-            const data = await gql(`
-                mutation($userId: bigint!, $typeCode: String!, $x: Int!) {
-                    insert_game_objects_one(object: {
-                        user_id: $userId,
-                        type_code: $typeCode,
-                        x: $x,
-                        y: 0
-                    }) {
-                        id
-                    }
-                }
-            `, { userId, typeCode, x: plotId });
-
-            console.log('[DB] Created game_object:', data);
-
-            if (data?.insert_game_objects_one?.id) {
-                const objectId = data.insert_game_objects_one.id;
-                // Save params
-                const paramsData = await gql(`
-                    mutation($objectId: Int!, $stage: String!, $plantedAt: String!) {
-                        insert_game_object_params(objects: [
-                            {object_id: $objectId, key: "stage", value: $stage},
-                            {object_id: $objectId, key: "planted_at", value: $plantedAt}
-                        ]) { affected_rows }
-                    }
-                `, { objectId, stage, plantedAt: plantedAtStr });
-                console.log('[DB] Created params:', paramsData);
-                return objectId;
-            }
-            return null;
-        }
-
-        // Load all planted crops from DB
-        async function loadPlantedCrops() {
-            console.log('[DB] Loading planted crops...');
-            const data = await gql(`
-                query {
-                    game_objects(where: {type_code: {_like: "crop_%"}}) {
-                        id
-                        type_code
-                        x
-                        created_at
-                        params {
-                            key
-                            value
-                        }
-                    }
-                }
-            `);
-            return data?.game_objects || [];
-        }
-
-        // Delete planted crop from DB (on harvest)
-        async function deletePlantedCrop(plotId) {
-            await gql(`
-                mutation($plotId: Int!) {
-                    delete_game_objects(where: {x: {_eq: $plotId}, type_code: {_like: "crop_%"}}) {
-                        affected_rows
-                    }
-                }
-            `, { plotId });
-        }
 
         // Restore planted crops from database on game load
         async function restorePlantedCrops() {
