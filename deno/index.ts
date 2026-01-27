@@ -479,10 +479,18 @@ async function scanConfigs() {
 
         const configPath = `${categoryPath}/${itemEntry.name}/config.json`;
         try {
+          const itemMemStart = Deno.memoryUsage();
+          const itemTimeStart = performance.now();
+
           const content = await Deno.readTextFile(configPath);
           const config = JSON.parse(content) as GameConfig;
           CONFIGS[categoryName][itemEntry.name] = config;
-          console.log(`Loaded: ${categoryName}/${itemEntry.name}`);
+
+          const itemMemEnd = Deno.memoryUsage();
+          const itemTimeEnd = performance.now();
+          const itemHeapDiff = (itemMemEnd.heapUsed - itemMemStart.heapUsed) / 1024 / 1024;
+
+          console.log(`Loaded: ${categoryName}/${itemEntry.name} | ${(itemTimeEnd - itemTimeStart).toFixed(2)}ms | Heap Delta: ${itemHeapDiff.toFixed(3)}MB`);
         } catch { /* skip */ }
       }
     } catch { /* category has no subdirs */ }
