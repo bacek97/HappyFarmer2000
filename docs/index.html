@@ -1887,8 +1887,9 @@
             document.getElementById('modal-title').textContent = text(cfg.name);
             const crops = await api('/api/configs/crops');
             const animals = await api('/api/configs/animals');
+            const factories = await api('/api/configs/factories');
 
-            // Build item name lookup from crops AND animal products
+            // Build item name lookup from crops, animal products, AND factory products
             const itemNames = {};
             // Add crops
             for (const [cropCode, cropCfg] of Object.entries(crops || {})) {
@@ -1897,6 +1898,15 @@
             // Add animal products
             for (const [animalCode, animalCfg] of Object.entries(animals || {})) {
                 for (const product of animalCfg.products || []) {
+                    if (product.code && product.name) {
+                        itemNames[product.code] = product.name;
+                    }
+                }
+            }
+            // Add factory products
+            for (const [factoryCode, factoryCfg] of Object.entries(factories || {})) {
+                const fullCfg = await api(`/api/configs/factories/${factoryCode}`);
+                for (const product of fullCfg?.products || []) {
                     if (product.code && product.name) {
                         itemNames[product.code] = product.name;
                     }

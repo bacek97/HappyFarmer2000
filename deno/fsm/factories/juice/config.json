@@ -74,6 +74,32 @@
             "image": "fsm/factories/juice/juice.png"
         }
     },
+    "products": [
+        {
+            "code": "apple_juice",
+            "name": {
+                "en": "Apple Juice",
+                "ru": "Яблочный сок"
+            },
+            "sell_silver": 40
+        },
+        {
+            "code": "carrot_juice",
+            "name": {
+                "en": "Carrot Juice",
+                "ru": "Морковный сок"
+            },
+            "sell_silver": 35
+        },
+        {
+            "code": "tomato_juice",
+            "name": {
+                "en": "Tomato Juice",
+                "ru": "Томатный сок"
+            },
+            "sell_silver": 45
+        }
+    ],
     "recipes": [
         {
             "code": "apple_juice",

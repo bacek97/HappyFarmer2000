@@ -51,6 +51,40 @@
             "image": "fsm/factories/chocolate/stage_1.png"
         }
     },
+    "products": [
+        {
+            "code": "sugar",
+            "name": {
+                "en": "Sugar",
+                "ru": "Сахар"
+            },
+            "sell_silver": 45
+        },
+        {
+            "code": "vamin_curd_snack",
+            "name": {
+                "en": "VAMIN Curd Snack",
+                "ru": "Творожный сырок ВАМИН"
+            },
+            "sell_silver": 85
+        },
+        {
+            "code": "milka_chocolate",
+            "name": {
+                "en": "MILKA Chocolate",
+                "ru": "Шоколад MILKA"
+            },
+            "sell_silver": 120
+        },
+        {
+            "code": "chudo_yogurt",
+            "name": {
+                "en": "CHUDO Yogurt",
+                "ru": "Йогурт ЧУДО"
+            },
+            "sell_silver": 75
+        }
+    ],
     "recipes": [
         {
             "code": "sugar",

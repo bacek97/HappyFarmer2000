@@ -51,6 +51,24 @@
             "image": "fsm/factories/chips/chips.png"
         }
     },
+    "products": [
+        {
+            "code": "potato_chips",
+            "name": {
+                "en": "Potato Chips",
+                "ru": "Картофельные чипсы"
+            },
+            "sell_silver": 50
+        },
+        {
+            "code": "luxury_chips",
+            "name": {
+                "en": "Luxury Chips",
+                "ru": "Чипсы Люкс"
+            },
+            "sell_silver": 150
+        }
+    ],
     "recipes": [
         {
             "code": "potato_chips",

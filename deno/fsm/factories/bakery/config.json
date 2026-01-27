@@ -51,6 +51,24 @@
             "image": "/images/factories/bakery/ready.png"
         }
     },
+    "products": [
+        {
+            "code": "bread",
+            "name": {
+                "en": "Bread",
+                "ru": "Хлеб"
+            },
+            "sell_silver": 30
+        },
+        {
+            "code": "cake",
+            "name": {
+                "en": "Cake",
+                "ru": "Торт"
+            },
+            "sell_silver": 100
+        }
+    ],
     "recipes": [
         {
             "code": "bread",
