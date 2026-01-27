@@ -1711,6 +1711,8 @@
 
         async function loadMapObjects() {
             const factoriesLayer = document.getElementById('factories-layer');
+            if (!factoriesLayer) return;
+            factoriesLayer.innerHTML = '';
             const factories = await api('/api/configs/factories');
             const factoryStates = await api('/api/factories');
             const statesMap = {};
