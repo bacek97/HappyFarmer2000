@@ -967,6 +967,7 @@
             : 'https://happyfarmer2000.bacek97.deno.net';
         const LANG = 'ru';
         let configs = {}, currentTool = 'plant', plots = [];
+        let wasDragging = false; // Global flag to differentiate click vs drag
 
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.ready(); tg.expand(); }
@@ -1569,10 +1570,14 @@
             const game = document.getElementById('game');
             let isDown = false;
             let startX, startY, scrollLeft, scrollTop;
+            let moveThreshold = 5; // Pixels to move before considering it a drag
 
             game.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.map-object, .plot, .tool, .action-btn')) return;
+                // Allow dragging on everything, but still check for UI buttons
+                if (e.target.closest('.tool, .action-btn, .modal, .submodal')) return;
+
                 isDown = true;
+                wasDragging = false;
                 game.style.cursor = 'grabbing';
                 startX = e.pageX - game.offsetLeft;
                 startY = e.pageY - game.offsetTop;
@@ -1587,13 +1592,22 @@
 
             window.addEventListener('mousemove', (e) => {
                 if (!isDown) return;
-                e.preventDefault();
+
                 const x = e.pageX - game.offsetLeft;
                 const y = e.pageY - game.offsetTop;
                 const walkX = (x - startX);
                 const walkY = (y - startY);
-                game.scrollLeft = scrollLeft - walkX;
-                game.scrollTop = scrollTop - walkY;
+
+                // If moved more than threshold, set wasDragging to true
+                if (Math.abs(walkX) > moveThreshold || Math.abs(walkY) > moveThreshold) {
+                    wasDragging = true;
+                }
+
+                if (wasDragging) {
+                    e.preventDefault();
+                    game.scrollLeft = scrollLeft - walkX;
+                    game.scrollTop = scrollTop - walkY;
+                }
             });
         }
 
@@ -1790,6 +1804,7 @@
 
         // Show modal for animal details
         async function showAnimalModal(id, code, cfg, params) {
+            if (wasDragging) return;
             document.getElementById('modal-title').textContent = text(cfg.name);
             document.getElementById('modal-footer').style.display = 'none';
 
@@ -1864,6 +1879,7 @@
         window.buyAnimal = buyAnimal;
 
         async function showFactoryModal(code, cfg, state = {}) {
+            if (wasDragging) return;
             document.getElementById('modal-title').textContent = text(cfg.name);
             document.getElementById('modal-footer').style.display = 'none';
 
@@ -2018,6 +2034,7 @@
         window.collectProduction = collectProduction;
 
         async function onPlotClick(id) {
+            if (wasDragging) return;
             const plot = plots[id];
             console.log('[PLOT] Click on plot', id, 'state:', plot?.state, 'currentTool:', currentTool);
 
