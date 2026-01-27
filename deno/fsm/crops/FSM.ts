@@ -128,6 +128,7 @@ export async function handlePlant(ctx: HandlerContext): Promise<Response> {
                 }
                 
                 insert_game_objects_one(object: {
+                    user_id: "${ctx.userId}",
                     type_code: $typeCode,
                     x: $x,
                     y: 0,
