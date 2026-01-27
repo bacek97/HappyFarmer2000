@@ -70,15 +70,49 @@ export async function handleList(ctx: HandlerContext): Promise<Response> {
                         key
                         value
                     }
+                    checkpoints {
+                        action
+                        time_offset
+                        deadline
+                        done_at
+                    }
                 }
             }
         `, {}, ctx.userId);
 
-        return new Response(JSON.stringify(result.game_objects || []), { headers });
+        const factories = (result.game_objects || []).map((obj: any) => {
+            const params: Record<string, string> = {};
+            obj.params.forEach((p: any) => params[p.key] = p.value);
+
+            const state = getFactoryState(obj.checkpoints, params);
+
+            return {
+                ...obj,
+                calculated_state: state
+            };
+        });
+
+        return new Response(JSON.stringify(factories), { headers });
     } catch (e) {
         console.error("[FACTORIES] handleList error:", e);
         return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
     }
+}
+
+function getFactoryState(checkpoints: any[], params: Record<string, string>) {
+    const now = Math.floor(Date.now() / 1000);
+
+    const readyCheckpoint = checkpoints.find(c => c.action === 'ready' && !c.done_at);
+    if (readyCheckpoint) {
+        const readyAt = parseInt(params.ready_at || "0");
+        if (now >= readyAt) {
+            return { stage: 'ready', recipe_code: params.recipe_code };
+        } else {
+            return { stage: 'processing', recipe_code: params.recipe_code, ready_at: readyAt };
+        }
+    }
+
+    return { stage: 'idle' };
 }
 
 export async function handleStart(ctx: HandlerContext): Promise<Response> {
@@ -161,10 +195,11 @@ export async function handleStart(ctx: HandlerContext): Promise<Response> {
         }
 
         // 3. Set production params
-        const readyAt = Math.floor(Date.now() / 1000) + (recipe.time || 0);
+        const productionTime = recipe.time || 0;
+        const readyAt = Math.floor(Date.now() / 1000) + productionTime;
 
         await hasuraQuery(`
-            mutation StartProduction($factoryId: Int!, $readyAt: String!, $recipeCode: String!) {
+            mutation StartProduction($factoryId: Int!, $readyAt: String!, $recipeCode: String!, $timeOffset: Int!, $deadline: Int!) {
                 ${mutations.join('\n')}
                 
                 insert_game_object_params(
@@ -175,11 +210,20 @@ export async function handleStart(ctx: HandlerContext): Promise<Response> {
                     ],
                     on_conflict: {constraint: game_object_params_pkey, update_columns: [value]}
                 ) { affected_rows }
+
+                insert_game_checkpoints_one(object: {
+                    object_id: $factoryId,
+                    action: "ready",
+                    time_offset: $timeOffset,
+                    deadline: $deadline
+                }) { id }
             }
         `, {
             factoryId,
             readyAt: String(readyAt),
-            recipeCode
+            recipeCode,
+            timeOffset: productionTime,
+            deadline: readyAt + 86400
         }, ctx.userId);
 
         return new Response(JSON.stringify({ success: true, ready_at: readyAt }), { headers });
@@ -287,6 +331,10 @@ export async function handleCollect(ctx: HandlerContext): Promise<Response> {
                 ${mutations.join('\n')}
                 
                 delete_game_object_params(where: {object_id: {_eq: $factoryId}, key: {_in: ["ready_at", "recipe_code", "stage"]}}) {
+                    affected_rows
+                }
+
+                delete_game_checkpoints(where: {object_id: {_eq: $factoryId}, action: {_eq: "ready"}}) {
                     affected_rows
                 }
             }

@@ -80,19 +80,65 @@ export async function handleList(ctx: HandlerContext): Promise<Response> {
                     type_code
                     x
                     y
+                    created_at
                     params {
                         key
                         value
+                    }
+                    checkpoints {
+                        action
+                        time_offset
+                        deadline
+                        done_at
                     }
                 }
             }
         `, {}, ctx.userId);
 
-        return new Response(JSON.stringify(result.game_objects || []), { headers });
+        const animalsConfig = ctx.configs?.animals;
+        const animals = (result.game_objects || []).map((obj: any) => {
+            const code = obj.type_code.replace('animal_', '');
+            const cfg = animalsConfig?.[code];
+            const params: Record<string, string> = {};
+            obj.params.forEach((p: any) => params[p.key] = p.value);
+
+            const state = getAnimalState(new Date(obj.created_at), cfg, obj.checkpoints, params);
+
+            return {
+                ...obj,
+                calculated_state: state
+            };
+        });
+
+        return new Response(JSON.stringify(animals), { headers });
     } catch (e) {
         console.error("[ANIMALS] handleList error:", e);
         return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
     }
+}
+
+function getAnimalState(createdAt: Date, cfg: any, checkpoints: any[], params: Record<string, string>) {
+    const now = Math.floor(Date.now() / 1000);
+    const elapsed = now - Math.floor(createdAt.getTime() / 1000);
+
+    // 1. Check for sick state (if implemented)
+    if (params.stage === 'sick') return { stage: 'sick' };
+
+    // 2. Check checkpoints
+    const readyCheckpoint = checkpoints.find(c => c.action === 'ready' && !c.done_at);
+    if (readyCheckpoint) {
+        if (elapsed >= readyCheckpoint.time_offset) {
+            return { stage: 'ready' };
+        } else {
+            return {
+                stage: params.stage === 'growing' ? 'growing' : 'fed',
+                ready_at: Math.floor(createdAt.getTime() / 1000) + readyCheckpoint.time_offset
+            };
+        }
+    }
+
+    // 3. Default to hungry
+    return { stage: 'hungry' };
 }
 
 export async function handleBuy(ctx: HandlerContext): Promise<Response> {
@@ -139,8 +185,11 @@ export async function handleBuy(ctx: HandlerContext): Promise<Response> {
         }
 
         // 2. Create animal and deduct silver
+        const maturationTime = animalCfg.maturation_time || 3600; // Default 1 hour if not set
+        const readyAt = Math.floor(Date.now() / 1000) + maturationTime;
+
         const result = await hasuraQuery(`
-            mutation BuyAnimal($typeCode: String!, $newSilver: Int!, $x: Int!, $y: Int!) {
+            mutation BuyAnimal($typeCode: String!, $newSilver: Int!, $x: Int!, $y: Int!, $maturationTime: Int!, $readyAt: Int!) {
                 insert_user_stats_one(
                     object: {user_id: "${ctx.userId}", key: "silver", value: $newSilver},
                     on_conflict: {constraint: user_stats_pkey, update_columns: [value]}
@@ -153,7 +202,12 @@ export async function handleBuy(ctx: HandlerContext): Promise<Response> {
                     y: $y,
                     params: {
                         data: [
-                            { key: "stage", value: "hungry" }
+                            { key: "stage", value: "growing" }
+                        ]
+                    },
+                    checkpoints: {
+                        data: [
+                            { action: "ready", time_offset: $maturationTime, deadline: $readyAt + 86400 }
                         ]
                     }
                 }) {
@@ -164,7 +218,9 @@ export async function handleBuy(ctx: HandlerContext): Promise<Response> {
             typeCode: `animal_${code}`,
             newSilver: currentSilver - price,
             x: animalCfg.position?.x || 0,
-            y: animalCfg.position?.y || 0
+            y: animalCfg.position?.y || 0,
+            maturationTime,
+            readyAt
         }, ctx.userId);
 
         if (!result?.insert_game_objects_one) {
@@ -296,6 +352,10 @@ export async function handleCollect(ctx: HandlerContext): Promise<Response> {
                     objects: [{object_id: $id, key: "stage", value: "hungry"}],
                     on_conflict: {constraint: game_object_params_pkey, update_columns: [value]}
                 ) { affected_rows }
+
+                delete_game_checkpoints(where: {object_id: {_eq: $id}, action: {_eq: "ready"}}) {
+                    affected_rows
+                }
             }
         `, {
             id: animalId,

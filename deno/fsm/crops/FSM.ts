@@ -5,6 +5,7 @@ import type { ModuleAPI, HandlerContext } from "../types.ts";
 
 // ENDPOINTS - for documentation only, actual registration in init()
 export const ENDPOINTS = {
+    LIST: 'crops',
     PLANT: 'plant',            // ?plot_id=1&crop=tomato&x=1&y=2
     HARVEST: 'harvest',        // ?id=1
     WATER: 'water',            // ?id=1
@@ -54,7 +55,57 @@ export function init(api: ModuleAPI) {
     CONFIGS = api.configs;
 }
 
-// ===== HTTP ENDPOINT HANDLERS =====
+export async function handleList(ctx: HandlerContext): Promise<Response> {
+    const headers = { "Content-Type": "application/json" };
+
+    try {
+        if (ctx.userId === "0") {
+            return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers });
+        }
+
+        const result = await hasuraQuery(`
+            query {
+                game_objects(where: {user_id: {_eq: "${ctx.userId}"}, type_code: {_like: "crop_%"}}) {
+                    id
+                    type_code
+                    x
+                    y
+                    created_at
+                    params {
+                        key
+                        value
+                    }
+                    checkpoints {
+                        action
+                        time_offset
+                        deadline
+                        done_at
+                    }
+                }
+            }
+        `, {}, ctx.userId);
+
+        const crops = (result.game_objects || []).map((obj: any) => {
+            const code = obj.type_code.replace('crop_', '');
+            const cfg = CONFIGS.crops?.[code] as CropConfig;
+            const state = getCropState(new Date(obj.created_at), cfg, obj.checkpoints);
+
+            const params: Record<string, string> = {};
+            obj.params.forEach((p: any) => params[p.key] = p.value);
+
+            return {
+                ...obj,
+                calculated_state: state,
+                params_map: params
+            };
+        });
+
+        return new Response(JSON.stringify(crops), { headers });
+    } catch (e) {
+        console.error("[CROPS] handleList error:", e);
+        return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
+    }
+}
 
 export async function handlePlant(ctx: HandlerContext): Promise<Response> {
     const headers = { "Content-Type": "application/json" };

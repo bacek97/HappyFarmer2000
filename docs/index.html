@@ -1317,59 +1317,27 @@
         // Restore planted crops from database on game load
         async function restorePlantedCrops() {
             console.log('[DB] Restoring planted crops...');
-            const plantedCrops = await loadPlantedCrops();
+            const plantedCrops = await api('/api/crops');
             console.log('[DB] Found crops:', plantedCrops);
 
             for (const obj of plantedCrops) {
                 const plotId = obj.x;
                 const cropCode = obj.type_code.replace('crop_', '');
-                const params = {};
-                (obj.params || []).forEach(p => {
-                    params[p.key] = p.value;
-                });
+                const state = obj.calculated_state || { stage: 'seed' };
+                const params = obj.params_map || {};
 
                 const plantedAt = parseInt(params.planted_at) || new Date(obj.created_at).getTime();
                 const cropCfg = await api(`/api/configs/crops/${cropCode}`);
                 if (!cropCfg) continue;
 
-                // Calculate current stage based on time elapsed
-                const elapsed = Date.now() - plantedAt;
-                const stageTimes = cropCfg.stage_times || [30000, 60000, 90000]; // default 30s per stage
-                const totalGrowTime = stageTimes.reduce((a, b) => a + b * 1000, 0);
-                const witherTime = (cropCfg.wither_time || 3600) * 1000; // default 1 hour
-
-                let currentStage = 'seed';
-                let isReady = false;
-                let isWithered = false;
-                let timeSum = 0;
-                const stages = ['seed', 'sprout', 'growing', 'ripe'];
-
-                for (let i = 0; i < stageTimes.length; i++) {
-                    timeSum += stageTimes[i] * 1000;
-                    if (elapsed >= timeSum && i < stages.length - 1) {
-                        currentStage = stages[i + 1];
-                    }
-                }
-
-                if (elapsed >= totalGrowTime) {
-                    currentStage = 'ripe';
-                    isReady = true;
-
-                    // Check if crop has withered (past wither deadline)
-                    if (elapsed >= totalGrowTime + witherTime) {
-                        currentStage = 'withered';
-                        isReady = false;
-                        isWithered = true;
-                    }
-                }
+                const currentStage = state.stage;
+                const isReady = state.isReady;
+                const isWithered = state.isWithered;
 
                 // Update plot state
-                // Extract yield amount from params for optimistic harvest display
-                const yieldFromParams = params.yield ? parseInt(params.yield) : null;
-                const yieldFromConfig = cropCfg.products?.[0]?.yield?.[0] || 2;
-                const yieldAmount = yieldFromParams || yieldFromConfig;
+                const yieldAmount = parseInt(params.yield || "2");
 
-                console.log(`[DB] Plot ${plotId}: crop=${cropCode}, stage=${currentStage}, isWithered=${isWithered}, yieldFromParams=${yieldFromParams}, yieldFromConfig=${yieldFromConfig}, final=${yieldAmount}, params=`, params);
+                console.log(`[DB] Plot ${plotId}: crop=${cropCode}, stage=${currentStage}, isWithered=${isWithered}, yield=${yieldAmount}`);
 
                 plots[plotId] = {
                     state: isWithered ? 'withered' : (isReady ? 'ready' : 'planted'),
@@ -1377,8 +1345,8 @@
                     stage: currentStage,
                     config: cropCfg,
                     plantedAt,
-                    objectId: obj.id,  // Important for harvest
-                    yieldAmount  // Preloaded for instant harvest feedback
+                    objectId: obj.id,
+                    yieldAmount
                 };
 
                 // Update plot visual
@@ -1392,7 +1360,7 @@
                     const html = img
                         ? `<img src="${img}" class="crop-img">`
                         : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (currentStage === 'ripe' ? '🍎' : '🌱')}</div>`;
-                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage]}</span>`;
+                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage] || currentStage}</span>`;
 
                     // Add withered styling
                     if (isWithered) {
@@ -1400,10 +1368,9 @@
                     }
                 }
             }
-
-            // Start countdown timer updates
-            startCountdownTimers();
         }
+
+        startCountdownTimers();
 
         // ===== Countdown Timer System =====
         let countdownInterval = null;
@@ -1710,18 +1677,16 @@
 
             const factories = await api('/api/configs/factories');
             const factoryStates = await api('/api/factories');
-            const statesMap = {};
-            (factoryStates || []).forEach(s => {
-                const params = {};
-                (s.params || []).forEach(p => params[p.key] = p.value);
-                statesMap[s.type_code.replace('factory_', '')] = params;
-            });
 
             for (const [code, cfg] of Object.entries(factories || {})) {
                 if (!cfg.position) continue; // Skip factories without position
 
-                const state = statesMap[code] || {};
-                const isReady = state.ready_at && (Date.now() / 1000 >= parseInt(state.ready_at));
+                const factoryObj = factoryStates?.find(f => f.type_code === `factory_${code}`);
+                const state = factoryObj?.calculated_state || { stage: 'idle' };
+                const params = {};
+                (factoryObj?.params || []).forEach(p => params[p.key] = p.value);
+
+                const isReady = state.stage === 'ready';
                 const stageImage = isReady ? (cfg.stages?.ready?.image || cfg.stages?.idle?.image) : (state.stage === 'processing' ? (cfg.stages?.processing?.image || cfg.stages?.idle?.image) : cfg.stages?.idle?.image);
                 const imagePath = stageImage ? `${stageImage}` : null;
                 const iconWidth = cfg.size?.width || 80;
@@ -1741,7 +1706,7 @@
                         obj.style.pointerEvents = 'none';
                         obj.style.cursor = 'default';
                     } else {
-                        obj.onclick = () => showFactoryModal(code, cfg, state);
+                        obj.onclick = () => showFactoryModal(code, cfg, params, state);
                     }
                     factoriesLayer.appendChild(obj);
                     factoryElements[code] = obj;
@@ -1780,15 +1745,16 @@
                 const cfg = animalsConfig[code];
                 if (!cfg) return;
 
+                const state = animal.calculated_state || { stage: 'hungry' };
                 const params = {};
                 (animal.params || []).forEach(p => params[p.key] = p.value);
-                const stage = params.stage || 'hungry';
+                const stage = state.stage;
                 const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
                 const iconHtml = stageImg.startsWith('fsm/') || stageImg.startsWith('/')
                     ? `<img src="${stageImg}" style="width:80px;height:auto;">`
                     : `<span style="font-size:60px">${stageImg}</span>`;
 
-                const statusIcon = stage === 'ready' ? '🥛' : stage === 'fed' ? '⏳' : '😋';
+                const statusIcon = stage === 'ready' ? '🥛' : (stage === 'fed' || stage === 'growing' ? '⏳' : '😋');
 
                 let animalEl = animalElements[animal.id];
                 if (!animalEl) {
@@ -1797,7 +1763,7 @@
                     animalEl.dataset.id = animal.id;
                     animalEl.style.left = `${animal.x + 600}px`;
                     animalEl.style.top = `${animal.y + 450}px`;
-                    animalEl.onclick = () => showAnimalModal(animal.id, code, cfg, params);
+                    animalEl.onclick = () => showAnimalModal(animal.id, code, cfg, params, state);
                     animalsLayer.appendChild(animalEl);
                     animalElements[animal.id] = animalEl;
                 }
@@ -1832,12 +1798,12 @@
         }
 
         // Show modal for animal details
-        async function showAnimalModal(id, code, cfg, params) {
+        async function showAnimalModal(id, code, cfg, params, state = {}) {
             if (wasDragging) return;
             document.getElementById('modal-title').textContent = text(cfg.name);
             document.getElementById('modal-footer').style.display = 'none';
 
-            const stage = params.stage || 'hungry';
+            const stage = state.stage || 'hungry';
             const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
 
             let html = `<div style="text-align:center; padding:20px;">`;
@@ -1851,7 +1817,7 @@
                 <p style="color:#5D4037;margin-bottom:15px;">${text(cfg.description)}</p>
                 <div style="background:rgba(255,255,255,0.5);padding:15px;border-radius:10px;margin-bottom:15px;text-align:left;">
                     <div><b>Статус:</b> ${text(cfg.stages?.[stage]?.messages) || stage}</div>
-                    ${stage === 'fed' ? `<div><b>Готов через:</b> ${Math.max(0, Math.floor((params.ready_at - Date.now() / 1000) / 60))} мин</div>` : ''}
+                    ${(stage === 'fed' || stage === 'growing') && state.ready_at ? `<div><b>Готов через:</b> ${Math.max(0, Math.floor((state.ready_at - Date.now() / 1000) / 60))} мин</div>` : ''}
                 </div>
             `;
 
@@ -1907,14 +1873,14 @@
         window.collectAnimalProduct = collectAnimalProduct;
         window.buyAnimal = buyAnimal;
 
-        async function showFactoryModal(code, cfg, state = {}) {
+        async function showFactoryModal(code, cfg, params = {}, state = {}) {
             if (wasDragging) return;
             document.getElementById('modal-title').textContent = text(cfg.name);
             document.getElementById('modal-footer').style.display = 'none';
 
             const readyAt = parseInt(state.ready_at || "0");
             const isProcessing = state.stage === 'processing';
-            const isReady = readyAt > 0 && (Date.now() / 1000 >= readyAt);
+            const isReady = state.stage === 'ready';
 
             if (isReady) {
                 const recipe = cfg.recipes?.find(r => r.code === state.recipe_code);
@@ -1951,7 +1917,7 @@
                 // Refresh modal every second
                 setTimeout(() => {
                     if (document.getElementById('modal').classList.contains('active')) {
-                        showFactoryModal(code, cfg, state);
+                        showFactoryModal(code, cfg, params, state);
                     }
                 }, 1000);
                 return;
