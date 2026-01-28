@@ -263,21 +263,29 @@ export async function handleCollect(ctx: HandlerContext): Promise<Response> {
 
         const factory = factoryResult?.game_objects?.[0];
         if (!factory) {
+            console.log(`[FACTORIES] Collect: Factory factory_${factoryCode} not found for user ${ctx.userId}`);
             return new Response(JSON.stringify({ error: "Factory not found" }), { status: 404, headers });
         }
 
         const params: Record<string, string> = {};
         factory.params.forEach((p: any) => params[p.key] = p.value);
 
+        console.log(`[FACTORIES] Collect: Factory ${factoryCode} params:`, JSON.stringify(params));
+
         const readyAt = parseInt(params.ready_at || "0");
         const recipeCode = params.recipe_code;
 
+        console.log(`[FACTORIES] Collect: readyAt=${readyAt}, recipeCode=${recipeCode}, now=${Math.floor(Date.now() / 1000)}`);
+
         if (!recipeCode || readyAt === 0) {
-            return new Response(JSON.stringify({ error: "Nothing to collect" }), { status: 400, headers });
+            console.log(`[FACTORIES] Collect: Nothing to collect - recipeCode=${recipeCode}, readyAt=${readyAt}`);
+            return new Response(JSON.stringify({ error: "Nothing to collect", debug: { params, recipeCode, readyAt } }), { status: 400, headers });
         }
 
         if (Date.now() / 1000 < readyAt) {
-            return new Response(JSON.stringify({ error: "Production not finished yet" }), { status: 400, headers });
+            const remaining = readyAt - Math.floor(Date.now() / 1000);
+            console.log(`[FACTORIES] Collect: Not ready yet, ${remaining}s remaining`);
+            return new Response(JSON.stringify({ error: "Production not finished yet", remaining }), { status: 400, headers });
         }
 
         // 2. Get recipe config
