@@ -1639,7 +1639,7 @@
                         obj.style.pointerEvents = 'none';
                         obj.style.cursor = 'default';
                     } else {
-                        obj.onclick = () => showFactoryModal(code, cfg, params, state);
+                        obj.onclick = () => showFactoryModal(code, cfg);
                     }
                     factoriesLayer.appendChild(obj);
                     factoryElements[code] = obj;
@@ -1806,12 +1806,23 @@
         window.collectAnimalProduct = collectAnimalProduct;
         window.buyAnimal = buyAnimal;
 
-        async function showFactoryModal(code, cfg, params = {}, state = {}) {
+        async function showFactoryModal(code, cfg) {
             if (wasDragging) return;
             document.getElementById('modal-title').textContent = text(cfg.name);
             document.getElementById('modal-footer').style.display = 'none';
 
-            const readyAt = parseInt(state.ready_at || "0");
+            // ALWAYS fetch fresh state from API to avoid stale data
+            const factoryStates = await api('/api/factories');
+            const factoryObj = Array.isArray(factoryStates)
+                ? factoryStates.find(f => f.type_code === `factory_${code}`)
+                : null;
+            const state = factoryObj?.calculated_state || { stage: 'idle' };
+            const params = {};
+            (factoryObj?.params || []).forEach(p => params[p.key] = p.value);
+
+            console.log(`[FACTORY] Modal for ${code}: state=${JSON.stringify(state)}, params=${JSON.stringify(params)}`);
+
+            const readyAt = parseInt(state.ready_at || params.ready_at || "0");
             const isProcessing = state.stage === 'processing';
             const isReady = state.stage === 'ready';
 
@@ -1850,7 +1861,7 @@
                 // Refresh modal every second
                 setTimeout(() => {
                     if (document.getElementById('modal').classList.contains('active')) {
-                        showFactoryModal(code, cfg, params, state);
+                        showFactoryModal(code, cfg);
                     }
                 }, 1000);
                 return;
