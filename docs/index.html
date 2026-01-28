@@ -1204,7 +1204,7 @@
 
         // Update single stat in DB
         async function updateStat(key, value) {
-            await gql(`
+            const result = await gql(`
                 mutation($userId: bigint!, $key: String!, $value: Int!) {
                     insert_user_stats_one(
                         object: {user_id: $userId, key: $key, value: $value}
@@ -1212,6 +1212,11 @@
                     ) { key }
                 }
             `, { userId, key, value });
+
+            if (!result) {
+                throw new Error('Ошибка обновления данных на сервере');
+            }
+
             inventory[key] = value;
         }
 
@@ -2187,10 +2192,7 @@
 
             if (plot?.objectId) {
                 try {
-                    const response = await fetch(`${API_URL}/api/harvest?id=${plot.objectId}`, {
-                        headers: { 'Authorization': tg?.initData || '' }
-                    });
-                    const result = await response.json();
+                    const result = await api(`/api/harvest?id=${plot.objectId}`);
 
                     // Check for errors (Withered is OK - expected response)
                     if (result.error && result.error !== 'Withered') {
@@ -2327,13 +2329,10 @@
             closeModal();
 
             // Call API to plant crop (handles seeds, checkpoints, etc.)
-            const response = await fetch(`${API_URL}/api/plant?plot_id=${plotId}&crop=${cropCode}`, {
-                headers: { 'Authorization': tg?.initData || '' }
-            });
-            const result = await response.json();
+            const result = await api(`/api/plant?plot_id=${plotId}&crop=${cropCode}`);
 
             if (!result.success) {
-                alert(result.error || 'Ошибка посадки');
+                showToast(result.error || 'Ошибка посадки', 'error');
                 return;
             }
 
@@ -2429,10 +2428,7 @@
 
             // 5. BACKGROUND REQUEST
             try {
-                const response = await fetch(`${API_URL}/api/harvest?id=${plot.objectId}`, {
-                    headers: { 'Authorization': tg?.initData || '' }
-                });
-                const result = await response.json();
+                const result = await api(`/api/harvest?id=${plot.objectId}`);
 
                 // Handle server errors (except withered which has special handling)
                 if (result.error && result.error !== 'Withered') {
@@ -2659,16 +2655,23 @@
             const totalPrice = pricePerUnit * qty;
 
             if (totalPrice > 0 && (inventory.silver || 0) < totalPrice) {
-                alert('Недостаточно монет!');
+                showToast('Недостаточно монет!', 'error');
                 return;
             }
 
-            if (totalPrice > 0) {
-                await modifyStat('silver', -totalPrice);
+            try {
+                if (totalPrice > 0) {
+                    await modifyStat('silver', -totalPrice);
+                }
+                await modifyStat(`seed_${cropCode}`, qty);
+                updateResourcesUI();
+                showModal('shop'); // Refresh
+                showToast('Семена куплены!', 'success');
+            } catch (e) {
+                console.error('[SHOP] Buy error:', e);
+                showToast(e.message || 'Ошибка при покупке', 'error');
+                await loadInventory(); // Sync with server
             }
-            await modifyStat(`seed_${cropCode}`, qty);
-            updateResourcesUI();
-            showModal('shop'); // Refresh
         }
 
         // Sell items with quantity
@@ -2677,14 +2680,21 @@
             const key = `item_${itemCode}`;
 
             if ((inventory[key] || 0) < qty) {
-                alert('Недостаточно товара!');
+                showToast('Недостаточно товара!', 'error');
                 return;
             }
 
-            await modifyStat(key, -qty);
-            await modifyStat('silver', pricePerUnit * qty);
-            updateResourcesUI();
-            showModal('warehouse'); // Refresh
+            try {
+                await modifyStat(key, -qty);
+                await modifyStat('silver', pricePerUnit * qty);
+                updateResourcesUI();
+                showModal('warehouse'); // Refresh
+                showToast('Товары проданы!', 'success');
+            } catch (e) {
+                console.error('[WAREHOUSE] Sell error:', e);
+                showToast(e.message || 'Ошибка при продаже', 'error');
+                await loadInventory();
+            }
         }
 
         // Confirm sell all
@@ -2729,26 +2739,40 @@
         // Buy seed
         async function buySeed(cropCode, price) {
             if ((inventory.silver || 0) < price) {
-                alert('Недостаточно монет!');
+                showToast('Недостаточно монет!', 'error');
                 return;
             }
-            await modifyStat('silver', -price);
-            await modifyStat(`seed_${cropCode}`, 1);
-            updateResourcesUI();
-            showModal('shop'); // Refresh
+            try {
+                await modifyStat('silver', -price);
+                await modifyStat(`seed_${cropCode}`, 1);
+                updateResourcesUI();
+                showModal('shop'); // Refresh
+                showToast('Семена куплены!', 'success');
+            } catch (e) {
+                console.error('[SHOP] Buy error:', e);
+                showToast(e.message || 'Ошибка при покупке', 'error');
+                await loadInventory();
+            }
         }
 
         // Sell item from warehouse
         async function sellItem(itemCode, qty, pricePerUnit) {
             const key = `item_${itemCode}`;
             if ((inventory[key] || 0) < qty) {
-                alert('Недостаточно товара!');
+                showToast('Недостаточно товара!', 'error');
                 return;
             }
-            await modifyStat(key, -qty);
-            await modifyStat('silver', pricePerUnit * qty);
-            updateResourcesUI();
-            showModal('warehouse'); // Refresh
+            try {
+                await modifyStat(key, -qty);
+                await modifyStat('silver', pricePerUnit * qty);
+                updateResourcesUI();
+                showModal('warehouse'); // Refresh
+                showToast('Товары проданы!', 'success');
+            } catch (e) {
+                console.error('[WAREHOUSE] Sell error:', e);
+                showToast(e.message || 'Ошибка при продаже', 'error');
+                await loadInventory();
+            }
         }
 
         window.buySeed = buySeed;
