@@ -85,9 +85,46 @@ async function getHasuraClaims(authHeader: string | null) {
       throw new Error("Invalid signature");
     }
 
-    // 3. Успех: возвращаем данные для Hasura
+    // 3. Успех: Автоматическая регистрация/обновление пользователя
+    const user = JSON.parse(userRaw);
+    const userId = user.id.toString();
+
+    try {
+      await hasuraQuery(`
+        mutation UpsertUser($id: bigint!, $username: String, $first_name: String, $last_name: String, $language_code: String, $photo_url: String) {
+          insert_users_one(
+            object: {
+              id: $id, 
+              username: $username, 
+              first_name: $first_name, 
+              last_name: $last_name, 
+              language_code: $language_code, 
+              photo_url: $photo_url
+            },
+            on_conflict: {
+              constraint: users_pkey,
+              update_columns: [username, first_name, last_name, language_code, photo_url, updated_at]
+            }
+          ) { id }
+        }
+      `, {
+        id: userId,
+        username: user.username,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        language_code: user.language_code,
+        photo_url: user.photo_url
+      });
+      console.log(`Auth: User ${userId} upserted successfully`);
+    } catch (e) {
+      console.error(`Auth: Failed to upsert user ${userId}:`, e);
+      // We don't throw here to allow the request to proceed if the user already exists 
+      // or if there's a temporary DB issue, but the FK violation might still happen later.
+    }
+
+    // 4. Возвращаем данные для Hasura
     return {
-      "X-Hasura-User-Id": JSON.parse(userRaw).id.toString(),
+      "X-Hasura-User-Id": userId,
       "X-Hasura-Role": "user",
     };
   } catch (e) {
@@ -720,20 +757,20 @@ function handleGetConfigs(category?: string, code?: string): Response {
 
 await scanConfigs();
 
-// Centralized CORS headers
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+// ===== MAIN SERVER =====
+
+await scanConfigs();
 
 // Helper to add CORS headers to any response
-function addCors(response: Response): Response {
-  // Clone headers and add CORS
+function addCors(req: Request, response: Response): Response {
+  const origin = req.headers.get("Origin") || "*";
   const newHeaders = new Headers(response.headers);
-  for (const [key, value] of Object.entries(CORS_HEADERS)) {
-    newHeaders.set(key, value);
-  }
+
+  newHeaders.set("Access-Control-Allow-Origin", origin);
+  newHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  newHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  newHeaders.set("Access-Control-Allow-Credentials", "true");
+  newHeaders.set("Vary", "Origin");
 
   return new Response(response.body, {
     status: response.status,
@@ -748,20 +785,31 @@ Deno.serve(async (req) => {
 
   // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: CORS_HEADERS });
+    const origin = req.headers.get("Origin") || "*";
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "86400",
+        "Vary": "Origin",
+      }
+    });
   }
 
   try {
     if (path === "/v1/auth/claims") {
-      return addCors(await handleAuth(req));
+      return addCors(req, await handleAuth(req));
     }
 
     if (path === "/v1/actions/create_invoice") {
-      return addCors(await handleCreateInvoice(req));
+      return addCors(req, await handleCreateInvoice(req));
     }
 
     if (path === "/v1/webhook/telegram") {
-      return addCors(await handleTelegramWebhook(req));
+      return addCors(req, await handleTelegramWebhook(req));
     }
 
     // Game API: GET /api/configs/:category?/:code?
@@ -769,7 +817,7 @@ Deno.serve(async (req) => {
       const parts = path.split("/").filter(Boolean);
       const category = parts[2];
       const code = parts[3];
-      return addCors(handleGetConfigs(category, code));
+      return addCors(req, handleGetConfigs(category, code));
     }
 
     // List all available endpoints
@@ -780,7 +828,7 @@ Deno.serve(async (req) => {
         module: e.module,
         hooks: e.hooks.map(h => h.moduleName)
       }));
-      return addCors(new Response(JSON.stringify(list), { headers: { "Content-Type": "application/json" } }));
+      return addCors(req, new Response(JSON.stringify(list), { headers: { "Content-Type": "application/json" } }));
     }
 
     // Dynamic FSM endpoints with hooks
@@ -788,14 +836,14 @@ Deno.serve(async (req) => {
       if (endpoint.path === path) {
         const claims = await getHasuraClaims(req.headers.get("authorization"));
         const userId = claims?.["X-Hasura-User-Id"] || "0";
-        return addCors(await executeWithHooks(endpoint, req, url, userId));
+        return addCors(req, await executeWithHooks(endpoint, req, url, userId));
       }
     }
 
-    return addCors(new Response("Not Found", { status: 404 }));
+    return addCors(req, new Response("Not Found", { status: 404 }));
   } catch (e) {
     console.error(`[SERVER] Error:`, e);
-    return addCors(new Response(JSON.stringify({ error: (e as Error).message }), {
+    return addCors(req, new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     }));
