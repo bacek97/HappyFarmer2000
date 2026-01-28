@@ -26,9 +26,12 @@ async function hasuraQuery(query: string, variables: Record<string, unknown> = {
     if (SERVICE_USER_TOKEN) {
         headers["Authorization"] = SERVICE_USER_TOKEN;
     }
-    // Set user-id for row-level security (optional if using service_role with filter: {})
+
+    // Use 'user' role for operations that respect row-level security
+    // The check constraint requires user_id = X-Hasura-User-Id
     if (userId) {
         headers["X-Hasura-User-Id"] = userId;
+        headers["X-Hasura-Role"] = "user";
     }
 
     const res = await fetch(HASURA_URL, {
