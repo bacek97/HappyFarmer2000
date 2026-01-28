@@ -905,7 +905,7 @@
 
         <!-- Bottom Toolbar -->
         <div class="bottom-toolbar">
-            <div class="toolbar-item" id="seed-selector" onclick="openSeedSelector()">
+            <div class="toolbar-item" id="seed-selector" onclick="showCropSelector()">
                 <div class="icon" id="selected-seed-icon">🌱</div>
                 <span class="label" id="selected-seed-name">Семена</span>
             </div>
@@ -987,7 +987,7 @@
                 }
                 const res = await fetch(`${API_URL}${path}`, { ...options, headers });
                 const responseText = await res.text();
-                
+
                 let result;
                 try {
                     result = JSON.parse(responseText);
@@ -995,16 +995,16 @@
                     console.error('Non-JSON response:', responseText);
                     return { success: false, error: responseText.slice(0, 100) || 'Server error' };
                 }
-                
+
                 // Handle HTTP error status codes
                 if (!res.ok) {
                     console.error(`[API] HTTP ${res.status}:`, result);
-                    return { 
-                        success: false, 
-                        error: result.error || result.message || `Ошибка сервера (${res.status})` 
+                    return {
+                        success: false,
+                        error: result.error || result.message || `Ошибка сервера (${res.status})`
                     };
                 }
-                
+
                 return result;
             }
             catch (e) {
@@ -2247,56 +2247,14 @@
             }
         }
 
-        // Open seed selector modal to choose which seed to use for quick planting
-        async function openSeedSelector() {
-            const crops = await api('/api/configs/crops');
-            document.getElementById('modal-title').textContent = 'Выберите семена';
-            document.getElementById('modal-footer').style.display = 'none';
-
-            let html = '<div class="shop-grid">';
-            for (const [code, c] of Object.entries(crops || {})) {
-                const seedCount = inventory[`seed_${code}`] || 0;
-                const seedImg = c.stages?.seed?.image;
-                const iconHtml = seedImg ? `<img src="${seedImg}" style="width:40px;height:40px">` : '🌱';
-                const isSelected = selectedSeed === code;
-                const style = isSelected ? 'border: 2px solid #4CAF50; background: rgba(76,175,80,0.2);' : '';
-
-                html += `<div class="shop-item" style="${style}" onclick="selectSeed('${code}')">
-                    ${seedCount > 0 ? `<span class="shop-item-qty">${seedCount}</span>` : ''}
-                    <div class="shop-item-icon">${iconHtml}</div>
-                    <div class="shop-item-name">${text(c.name)}</div>
-                    <div class="shop-item-price">${seedCount} шт</div>
-                </div>`;
-            }
-            html += '</div>';
-
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal').classList.add('active');
-        }
-
-        // Select a seed for quick planting
-        function selectSeed(cropCode) {
-            selectedSeed = cropCode;
-            const crops = CONFIGS?.crops || {};
-            const crop = crops[cropCode];
-
-            // Update toolbar button
-            const seedIcon = document.getElementById('selected-seed-icon');
-            const seedName = document.getElementById('selected-seed-name');
-            if (crop) {
-                const img = crop.stages?.seed?.image;
-                seedIcon.innerHTML = img ? `<img src="${img}" style="width:28px;height:28px">` : '🌱';
-                seedName.textContent = text(crop.name);
-            }
-
-            closeModal();
-        }
 
 
-        async function showCropSelector(plotId) {
+        // Show crop selector modal - can be used both for selecting seed (no plotId) or planting directly (with plotId)
+        async function showCropSelector(plotId = null) {
             const crops = await api('/api/configs/crops');
             const plotCfg = await api('/api/configs/plots/plot');
-            document.getElementById('modal-title').textContent = text(plotCfg?.ui?.labels?.select_crop) || 'Выберите семена';
+            const isSelectMode = plotId === null;
+            document.getElementById('modal-title').textContent = isSelectMode ? 'Выберите культуру' : (text(plotCfg?.ui?.labels?.select_crop) || 'Выберите семена');
             document.getElementById('modal-footer').style.display = 'none';
 
             // Filter only crops that user has seeds for
@@ -2323,8 +2281,12 @@
                         ? `<img src="${seedImg}">`
                         : '🌱';
                     const seedCount = inventory[`seed_${code}`] || 0;
+                    const isSelected = selectedSeed === code;
+                    const style = isSelected ? 'border: 2px solid #4CAF50; background: rgba(76,175,80,0.2);' : '';
+                    // If plotId is provided, plant directly; otherwise, select the seed
+                    const clickAction = isSelectMode ? `selectCropForPlanting('${code}')` : `plantCrop(${plotId}, '${code}')`;
                     return `
-                                <div class="shop-item" onclick="plantCrop(${plotId}, '${code}')">
+                                <div class="shop-item" style="${style}" onclick="${clickAction}">
                                     <span class="shop-item-qty">${seedCount}</span>
                                     <div class="shop-item-icon">${iconHtml}</div>
                                     <div class="shop-item-name">${text(c.name)}</div>
@@ -2336,6 +2298,25 @@
                 `;
             }
             document.getElementById('modal').classList.add('active');
+        }
+
+        // Select a crop for quick planting (updates the toolbar and selectedSeed)
+        function selectCropForPlanting(cropCode) {
+            selectedSeed = cropCode;
+            const crops = CONFIGS?.crops || {};
+            const crop = crops[cropCode];
+
+            // Update toolbar button
+            const seedIcon = document.getElementById('selected-seed-icon');
+            const seedName = document.getElementById('selected-seed-name');
+            if (crop) {
+                const img = crop.stages?.seed?.image;
+                seedIcon.innerHTML = img ? `<img src="${img}" style="width:28px;height:28px">` : '🌱';
+                seedName.textContent = text(crop.name);
+            }
+
+            closeModal();
+            showToast(`Выбрано: ${text(crop?.name)}`, 'success');
         }
 
         async function plantCrop(plotId, cropCode) {
