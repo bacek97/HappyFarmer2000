@@ -91,7 +91,7 @@ async function getHasuraClaims(authHeader: string | null) {
 
     try {
       await hasuraQuery(`
-        mutation UpsertUser($id: bigint!, $username: String, $first_name: String, $last_name: String, $language_code: String, $photo_url: String) {
+        mutation UpsertUser($id: bigint!, $username: String, $first_name: String, $last_name: String, $language_code: String, $photo_url: String, $allows_write_to_pm: Boolean!) {
           insert_users_one(
             object: {
               id: $id, 
@@ -99,11 +99,12 @@ async function getHasuraClaims(authHeader: string | null) {
               first_name: $first_name, 
               last_name: $last_name, 
               language_code: $language_code, 
-              photo_url: $photo_url
+              photo_url: $photo_url,
+              allows_write_to_pm: $allows_write_to_pm
             },
             on_conflict: {
               constraint: users_pkey,
-              update_columns: [username, first_name, last_name, language_code, photo_url, updated_at]
+              update_columns: [username, first_name, last_name, language_code, photo_url, allows_write_to_pm, updated_at]
             }
           ) { id }
         }
@@ -113,7 +114,8 @@ async function getHasuraClaims(authHeader: string | null) {
         first_name: user.first_name,
         last_name: user.last_name,
         language_code: user.language_code,
-        photo_url: user.photo_url
+        photo_url: user.photo_url,
+        allows_write_to_pm: !!user.allows_write_to_pm
       });
       console.log(`Auth: User ${userId} upserted successfully`);
     } catch (e) {
