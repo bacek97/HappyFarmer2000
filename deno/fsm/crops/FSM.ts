@@ -137,12 +137,12 @@ export async function handlePlant(ctx: HandlerContext): Promise<Response> {
 
         // REQUEST 1: Get current seeds count
         const seedCheck = await hasuraQuery(`
-            query($userId: bigint!, $key: String!) {
-                user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) {
+            query($key: String!) {
+                user_stats(where: {key: {_eq: $key}}) {
                     value
                 }
             }
-        `, { userId: ctx.userId, key: seedKey }, ctx.userId);
+        `, { key: seedKey }, ctx.userId);
 
         const currentSeeds = seedCheck?.user_stats?.[0]?.value || 0;
         if (currentSeeds < 1) {
