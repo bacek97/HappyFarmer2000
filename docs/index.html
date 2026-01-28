@@ -986,13 +986,26 @@
                     headers['Content-Type'] = 'application/json';
                 }
                 const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-                const text = await res.text();
+                const responseText = await res.text();
+                
+                let result;
                 try {
-                    return JSON.parse(text);
+                    result = JSON.parse(responseText);
                 } catch (e) {
-                    console.error('Non-JSON response:', text);
-                    return { success: false, error: text.slice(0, 100) || 'Server error' };
+                    console.error('Non-JSON response:', responseText);
+                    return { success: false, error: responseText.slice(0, 100) || 'Server error' };
                 }
+                
+                // Handle HTTP error status codes
+                if (!res.ok) {
+                    console.error(`[API] HTTP ${res.status}:`, result);
+                    return { 
+                        success: false, 
+                        error: result.error || result.message || `Ошибка сервера (${res.status})` 
+                    };
+                }
+                
+                return result;
             }
             catch (e) {
                 console.error('API Error:', e);

@@ -26,9 +26,8 @@ async function hasuraQuery(query: string, variables: Record<string, unknown> = {
     if (SERVICE_USER_TOKEN) {
         headers["Authorization"] = SERVICE_USER_TOKEN;
     }
-
+    // Set user-id for row-level security (optional if using service_role with filter: {})
     if (userId) {
-        headers["X-Hasura-Role"] = "user";
         headers["X-Hasura-User-Id"] = userId;
     }
 
@@ -137,16 +136,16 @@ export async function handlePlant(ctx: HandlerContext): Promise<Response> {
 
         // REQUEST 1: Get current seeds count
         const seedCheck = await hasuraQuery(`
-            query($key: String!) {
-                user_stats(where: {key: {_eq: $key}}) {
+            query($userId: bigint!, $key: String!) {
+                user_stats(where: {user_id: {_eq: $userId}, key: {_eq: $key}}) {
                     value
                 }
             }
-        `, { key: seedKey }, ctx.userId);
+        `, { userId: ctx.userId, key: seedKey }, ctx.userId);
 
         const currentSeeds = seedCheck?.user_stats?.[0]?.value || 0;
         if (currentSeeds < 1) {
-            return new Response(JSON.stringify({ error: "No seeds" }), { status: 400, headers });
+            return new Response(JSON.stringify({ error: `No seeds (${seedKey}). Current: ${currentSeeds}` }), { status: 400, headers });
         }
 
         // REQUEST 2: Single mutation with nested inserts
@@ -164,6 +163,7 @@ export async function handlePlant(ctx: HandlerContext): Promise<Response> {
 
         const result = await hasuraQuery(`
             mutation PlantCrop(
+                $userId: bigint!,
                 $seedKey: String!, 
                 $newSeedCount: Int!,
                 $typeCode: String!, 
@@ -172,14 +172,14 @@ export async function handlePlant(ctx: HandlerContext): Promise<Response> {
                 $params: [game_object_params_insert_input!]!
             ) {
                 update_user_stats_by_pk(
-                    pk_columns: {user_id: "${ctx.userId}", key: $seedKey}, 
+                    pk_columns: {user_id: $userId, key: $seedKey}, 
                     _set: {value: $newSeedCount}
                 ) {
                     value
                 }
                 
                 insert_game_objects_one(object: {
-                    user_id: "${ctx.userId}",
+                    user_id: $userId,
                     type_code: $typeCode,
                     x: $x,
                     y: 0,
@@ -191,6 +191,7 @@ export async function handlePlant(ctx: HandlerContext): Promise<Response> {
                 }
             }
         `, {
+            userId: ctx.userId,
             seedKey,
             newSeedCount: currentSeeds - 1,
             typeCode: `crop_${cropCode}`,

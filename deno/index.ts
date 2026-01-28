@@ -151,9 +151,8 @@ async function hasuraQuery(query: string, variables: Record<string, unknown> = {
     headers["Authorization"] = SERVICE_USER_TOKEN;
   }
 
-  // Set role and user-id for row-level security
+  // Set user-id for row-level security (optional if using service_role with filter: {})
   if (userId) {
-    headers["X-Hasura-Role"] = "user";
     headers["X-Hasura-User-Id"] = userId;
   }
 
