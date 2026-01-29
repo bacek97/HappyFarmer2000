@@ -1938,16 +1938,19 @@
         }
 
         async function startProduction(factoryCode, recipeCode) {
+            console.log(`[FACTORY] Starting production: factory=${factoryCode}, recipe=${recipeCode}`);
             const res = await api('/api/start_production', {
                 method: 'POST',
                 body: JSON.stringify({ factoryCode, recipeCode })
             });
 
+            console.log(`[FACTORY] Start production response:`, res);
+
             if (res.success) {
                 showToast('Производство запущено!', 'success');
                 closeModal();
-                loadInventory();
-                loadMapObjects();
+                await loadInventory();
+                await loadMapObjects();
             } else {
                 showToast(res.error || 'Ошибка запуска', 'error');
             }
