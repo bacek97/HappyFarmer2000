@@ -103,8 +103,13 @@ function getFactoryState(checkpoints: any[], params: Record<string, string>) {
     const now = Math.floor(Date.now() / 1000);
 
     const readyCheckpoint = checkpoints.find(c => c.action === 'ready' && !c.done_at);
-    if (readyCheckpoint) {
-        const readyAt = parseInt(params.ready_at || "0");
+
+    // Must have BOTH checkpoint AND params to be in production state
+    // If params are missing (ready_at, recipe_code), factory is idle even if checkpoint exists
+    const hasProductionParams = params.ready_at && params.recipe_code;
+
+    if (readyCheckpoint && hasProductionParams) {
+        const readyAt = parseInt(params.ready_at);
         if (now >= readyAt) {
             return { stage: 'ready', recipe_code: params.recipe_code };
         } else {
