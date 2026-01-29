@@ -203,7 +203,9 @@ export async function handleStart(ctx: HandlerContext): Promise<Response> {
         const productionTime = recipe.time || 0;
         const readyAt = Math.floor(Date.now() / 1000) + productionTime;
 
-        await hasuraQuery(`
+        console.log(`[FACTORIES] Starting production for factory ${factoryId}, recipe ${recipeCode}, readyAt ${readyAt}`);
+
+        const startResult = await hasuraQuery(`
             mutation StartProduction($factoryId: Int!, $readyAt: String!, $recipeCode: String!, $timeOffset: Int!, $deadline: Int!) {
                 ${mutations.join('\n')}
                 
@@ -231,7 +233,17 @@ export async function handleStart(ctx: HandlerContext): Promise<Response> {
             deadline: readyAt + 86400
         }, ctx.userId);
 
-        return new Response(JSON.stringify({ success: true, ready_at: readyAt }), { headers });
+        console.log(`[FACTORIES] StartProduction result:`, JSON.stringify(startResult));
+
+        // Verify params were inserted
+        const paramsInserted = startResult?.insert_game_object_params?.affected_rows || 0;
+        const checkpointId = startResult?.insert_game_checkpoints_one?.id;
+
+        if (paramsInserted < 3 || !checkpointId) {
+            console.error(`[FACTORIES] Partial insert! Params: ${paramsInserted}/3, Checkpoint: ${checkpointId}`);
+        }
+
+        return new Response(JSON.stringify({ success: true, ready_at: readyAt, paramsInserted, checkpointId }), { headers });
     } catch (e) {
         console.error("[FACTORIES] handleStart error:", e);
         return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers });
