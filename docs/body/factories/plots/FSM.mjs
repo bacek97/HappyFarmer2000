@@ -35,17 +35,27 @@ class PlotsPlot extends HTMLElement {
     }
     fsm = {
         mode: 'harvest',
+        plant: undefined,
+        startTime: 0,
         on: {
-            click: () => {
-                // console.log(this);
-                this.classList.toggle('harvested');
-                this.fsm.handle[this.fsm.mode]();
+            pointerdown: () => {
+                this.fsm.startTime = Date.now();
+            },
+            click: (txt) => {
+                const duration = Date.now() - this.fsm.startTime;
+                if (duration > 200) return; // Игнорируем длинное зажатие (перемещение)
+
+                this.fsm.handle[this.fsm.mode](txt);
             }
         },
         handle: {
-            harvest: () => { console.log('harvest'); },
+            harvest: (txt) => {
+                console.log('harvest');
+
+                this.classList.toggle('harvested');
+            },
             plant: () => { console.log('plant'); },
-            grow: () => { console.log('grow'); },
+            buy: () => { console.log('buy'); },
 
         }
 
@@ -66,6 +76,7 @@ class PlotsPlot extends HTMLElement {
         this.classList.add('harvested');
 
         // this.onclick = () => { console.log('test67'); };
+        this.addEventListener('pointerdown', this.fsm.on.pointerdown);
         this.addEventListener('click', this.fsm.on.click);
         // this.id = 'field';
         // this.innerHTML = `
