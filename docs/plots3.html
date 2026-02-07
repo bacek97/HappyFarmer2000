@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inversion of Control Farm</title>
+    <style>
+        body {
+            margin: 0;
+            background: #a6d785;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        .viewport {
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            padding-top: 100px;
+        }
+
+        .grid {
+            position: relative;
+            width: 600px;
+        }
+
+        .toolbar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 50px;
+            z-index: 1000;
+        }
+
+        .tool-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #444;
+            background: white;
+            font-size: 28px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .tool-btn.active {
+            border-color: #ffeb3b;
+            transform: scale(1.15);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="viewport">
+        <div class="grid" id="garden"></div>
+    </div>
+
+    <div class="toolbar" id="toolbar-ui"></div>
+
+    <script>
+
+        /** * 1. ИНТЕРФЕЙС РАСТЕНИЯ (FSM)
+         * Каждое растение — это автономный контроллер внешнего вида
+         */
+        class BasePlantFSM extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+                this.state = 0;
+            }
+
+            connectedCallback() {
+                this.render();
+                this.timer = setInterval(() => this.nextStage(), this.growthRate);
+            }
+
+            nextStage() {
+                if (this.state < this.maxStages) {
+                    this.state++;
+                    this.render();
+                    if (this.state === this.maxStages) {
+                        clearInterval(this.timer);
+                        this.dispatchEvent(new CustomEvent('plant-ripe', { bubbles: true, composed: true }));
+                    }
+                }
+            }
+
+            render() {
+                // Растение само генерирует свой HTML
+                this.shadowRoot.innerHTML = this.getHTML();
+            }
+
+            disconnectedCallback() { clearInterval(this.timer); }
+        }
+
+        class CarrotPlant extends BasePlantFSM {
+            growthRate = 1500;
+            maxStages = 2;
+            getHTML() {
+                const sizes = [20, 40, 60];
+                return `
+            <style>
+                .carrot { font-size: ${sizes[this.state]}px; transition: 0.5s; display: block; }
+                .pests { position: absolute; top: 0; }
+            </style>
+            <div class="carrot">🥕</div>
+            <div class="pests"><slot name="pests"></slot></div>
+        `;
+            }
+        }
+        customElements.define('farm-carrot', CarrotPlant);
+
+        class BeetPlant extends BasePlantFSM {
+            growthRate = 12500;
+            maxStages = 1;
+            getHTML() {
+                const opacity = this.state === 0 ? 0.5 : 1;
+                return `
+            <style>.beet { font-size: 50px; opacity: ${opacity}; transition: 0.5s; }</style>
+            <div class="beet">🟣</div>
+            <slot name="pests"></slot>
+        `;
+            }
+        }
+        customElements.define('farm-beet', BeetPlant);
+
+        /**
+         * 2. ОБЪЕКТЫ ИНСТРУМЕНТОВ
+         * Инструмент сам знает, как менять грядку
+         */
+        const Tools = {
+            CARROT: {
+                icon: '🥕',
+                apply: (plot) => plot.tryPlant('farm-carrot')
+            },
+            BEET: {
+                icon: '🟣',
+                apply: (plot) => plot.tryPlant('farm-beet')
+            },
+            SICKLE: {
+                icon: '🌾',
+                apply: (plot) => plot.tryHarvest()
+            }
+        };
+
+        /**
+         * 3. ГРЯДКА (Plot Component)
+         * Грядка ничего не знает о типах инструментов, она предоставляет методы воздействия
+         */
+        class FarmPlot extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+                this.shadowRoot.innerHTML = `
+            <style>
+                :host { position: absolute; width: 90px; height: 45px; }
+                .soil { position: absolute; inset: 0; background: #4caf50; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); transition: 0.3s; }
+                :host([status="busy"]) .soil { background: #6b4f2c; }
+                :host([status="ready"]) .soil { background: #3d2b1f; box-shadow: 0 0 15px gold; }
+                .slot-point { position: absolute; left: 50%; bottom: 30%; transform: translateX(-50%); z-index: 5; }
+            </style>
+            <div class="soil"></div>
+            <div class="slot-point"><slot></slot></div>
+        `;
+                this.addEventListener('plant-ripe', () => this.setAttribute('status', 'ready'));
+            }
+
+            tryPlant(tagName) {
+                if (this.hasAttribute('status')) return;
+                this.setAttribute('status', 'busy');
+                this.appendChild(document.createElement(tagName));
+            }
+
+            tryHarvest() {
+                if (this.getAttribute('status') === 'ready') {
+                    this.removeAttribute('status');
+                    this.innerHTML = '';
+                }
+            }
+        }
+        customElements.define('farm-plot', FarmPlot);
+
+        /**
+         * 4. TOOLBAR FSM
+         */
+        class ToolbarController {
+            constructor(container, grid) {
+                this.activeTool = Tools.CARROT;
+                this.container = container;
+                this.render();
+            }
+
+            render() {
+                this.container.innerHTML = '';
+                Object.values(Tools).forEach(tool => {
+                    const btn = document.createElement('button');
+                    btn.className = `tool-btn ${this.activeTool === tool ? 'active' : ''}`;
+                    btn.innerHTML = tool.icon;
+                    btn.onclick = () => {
+                        this.activeTool = tool;
+                        this.render();
+                    };
+                    this.container.appendChild(btn);
+                });
+            }
+
+            use(plot) {
+                this.activeTool.apply(plot);
+            }
+        }
+
+        // --- ЗАПУСК СИСТЕМЫ ---
+        const toolbar = new ToolbarController(document.getElementById('toolbar-ui'));
+        const garden = document.getElementById('garden');
+
+        const COLS = 4, ROWS = 6;
+        for (let i = 0; i < COLS * ROWS; i++) {
+            const x = i % COLS;
+            const y = Math.floor(i / COLS);
+            const plot = document.createElement('farm-plot');
+            plot.style.left = (COLS - 1) * 45 - (x - y) * 45 + 'px';
+            plot.style.top = (x + y) * 22.5 + 'px';
+
+            // Грядка просто принимает "использование" от тулбара
+            plot.onclick = () => toolbar.use(plot);
+            garden.appendChild(plot);
+        }
+
+    </script>
+</body>
+
+</html>

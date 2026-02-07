@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Happy Farm 2000</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="hasura_sync.js"></script>
+    <style id="dynamic-styles"></style>
     <style>
         * {
             margin: 0;
@@ -18,238 +20,41 @@
             overflow: hidden;
             width: 100vw;
             height: 100vh;
-            background: #1a3a1a;
         }
 
         #game {
             position: relative;
             width: 100%;
             height: 100%;
-            overflow: auto;
-            -webkit-overflow-scrolling: touch;
-            background: #1a3a1a;
-            cursor: grab;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* Game world - fixed size */
         #game-world {
             position: relative;
-            width: 1200px;
-            height: 900px;
-            background: url('fsm/ui/background.jpg') no-repeat;
-            background-size: 100% 100%;
+            width: 800px;
+            height: 600px;
+            background: url('fsm/ui/background.jpg') center center;
+            background-size: cover;
+            transform-origin: center center;
         }
 
-        /* Top Left Stats */
-        .top-left-stats {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            z-index: 100;
-        }
-
-        .level-circle {
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            border: 4px solid #81C784;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .stats-column {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .user-panel {
-            background: linear-gradient(135deg, rgba(139, 69, 19, 0.9), rgba(101, 67, 33, 0.9));
-            border: 3px solid #8B4513;
-            border-radius: 12px;
-            padding: 8px 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 3px solid #FFD700;
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-            font-weight: bold;
-        }
-
-        .user-info {
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-        }
-
-        .username {
-            font-weight: bold;
-            font-size: 16px;
-        }
-
-        .user-level {
-            font-size: 12px;
-            color: #FFD700;
-        }
-
-        .resources {
-            position: fixed;
-            top: 70px;
-            left: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            z-index: 100;
-        }
-
-        .resource {
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
-            border: 2px solid #666;
-            border-radius: 20px;
-            padding: 6px 14px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .resource.silver {
-            border-color: #C0C0C0;
-        }
-
-        .resource.gold {
-            border-color: #FFD700;
-        }
-
-        /* Right sidebar buttons (vertical) */
-        .right-sidebar {
-            position: fixed;
-            right: 10px;
-            top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 100;
-        }
-
-        .sidebar-btn {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .sidebar-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .sidebar-btn.cyan {
-            background: linear-gradient(135deg, #4DD0E1, #00ACC1);
-        }
-
-        .sidebar-btn.green {
-            background: linear-gradient(135deg, #81C784, #4CAF50);
-        }
-
-        .sidebar-btn.orange {
-            background: linear-gradient(135deg, #FFB74D, #FF9800);
-        }
-
-        .sidebar-btn.red {
-            background: linear-gradient(135deg, #E57373, #F44336);
-        }
-
-        .sidebar-btn.yellow {
-            background: linear-gradient(135deg, #FFF176, #FFEB3B);
-        }
-
-        /* Bottom toolbar with labels */
-        .bottom-toolbar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: transparent;
-            padding: 8px 10px 12px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .toolbar-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .toolbar-item:hover {
-            transform: translateY(-3px);
-        }
-
-        .toolbar-item .icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-            backdrop-filter: blur(4px);
-        }
-
-        .toolbar-item .icon.active {
-            background: rgba(76, 175, 80, 0.5);
-            border-color: #4CAF50;
-        }
-
-        .toolbar-item .label {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        /* Farm Grid - Isometric via positioning */
+        .farm-container {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 400px;
         }
 
         .farm-grid {
-            position: absolute;
+            position: relative;
             width: 100%;
             height: 100%;
-            pointer-events: none;
         }
 
         .plot {
@@ -264,21 +69,20 @@
             align-items: center;
             justify-content: center;
             transition: all 0.15s;
-            pointer-events: auto;
         }
 
         .plot:hover {
             filter: brightness(1.2);
-            /* z-index: 10; */
+            z-index: 10;
         }
 
         .plot .crop-img {
             position: absolute;
-            width: 150px;
+            width: 100px;
             height: auto;
-            bottom: 17px;
+            bottom: 30px;
             left: 50%;
-            margin-left: -75px;
+            transform: translateX(-50%);
             pointer-events: none;
         }
 
@@ -291,56 +95,18 @@
             font-size: 9px;
             padding: 2px 5px;
             border-radius: 8px;
-            z-index: 10;
         }
 
-        .plot .countdown-timer {
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            background: rgba(76, 175, 80, 0.85);
-            color: white;
-            font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 3px;
-            z-index: 10;
-        }
-
-        .plot .countdown-timer.warning {
-            background: rgba(255, 152, 0, 0.85);
-        }
-
-        .plot .countdown-timer.danger {
-            background: rgba(244, 67, 54, 0.85);
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.6;
-            }
-        }
-
-
-        /* Map Objects (Factories, Animals, Buildings) */
+        /* Map Objects */
         .map-object {
             position: absolute;
             cursor: pointer;
             transition: transform 0.2s;
+            z-index: 50;
         }
 
         .map-object:hover {
-            filter: brightness(1.1);
+            transform: scale(1.15);
         }
 
         .map-object .object-icon {
@@ -352,8 +118,7 @@
             position: absolute;
             bottom: -22px;
             left: 50%;
-            margin-left: -40px;
-            /* Approximate half-width */
+            transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.75);
             color: white;
             padding: 3px 10px;
@@ -363,353 +128,168 @@
             font-weight: bold;
         }
 
-        /* Animals Container */
-        #animals-layer {
-            position: absolute;
-            width: 100%;
-            height: 100%;
+        /* UI Layers */
+        .ui-layer {
+            position: fixed;
+            z-index: 100;
             pointer-events: none;
         }
 
-        .animal-object {
-            position: absolute;
-            cursor: pointer;
+        .ui-layer>* {
             pointer-events: auto;
-            transition: transform 0.3s ease;
         }
 
-        .animal-object:hover {
-            transform: scale(1.1);
-            filter: brightness(1.15);
+        .top-l {
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
         }
 
-        .animal-object .animal-icon {
-            filter: drop-shadow(3px 5px 8px rgba(0, 0, 0, 0.5));
+        .res-l {
+            top: 70px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .animal-object .animal-icon img,
-        .animal-object .animal-icon video {
-            width: 100px;
-            height: auto;
-            border-radius: 8px;
+        .side-l {
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .animal-object .animal-icon video {
-            object-fit: cover;
+        .tool-l {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
         }
 
-        .animal-object .animal-label {
-            position: absolute;
-            bottom: -25px;
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 80px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(135deg, rgba(139, 69, 19, 0.9), rgba(101, 67, 33, 0.9));
+            padding: 12px 24px;
+            border-radius: 30px;
             color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            white-space: nowrap;
             font-weight: bold;
-            border: 2px solid rgba(255, 215, 0, 0.5);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
         }
 
-        .animal-object .animal-status {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
+        .toast.success {
             background: #4CAF50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         }
 
-        .animal-object .animal-status.hungry {
-            background: #FF9800;
-        }
-
-        .animal-object .animal-status.sick {
+        .toast.error {
             background: #F44336;
         }
 
-        /* Modal */
+        /* Modal Styles */
         .modal {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background: rgba(0, 0, 0, 0.7);
             display: none;
             justify-content: center;
             align-items: center;
-            /* z-index: 1000; */
+            z-index: 1000;
         }
 
         .modal.active {
             display: flex;
         }
 
-        .modal-content {
+        .modal-cnt {
             background: #f0f0f0;
-            border-radius: 12px;
-            max-width: 450px;
+            border-radius: 16px;
             width: 95%;
-            max-height: 85vh;
+            max-width: 450px;
+            max-height: 90vh;
             overflow: hidden;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: #4a4a4a;
-            color: white;
+            flex-direction: column;
         }
 
-        .modal-title {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            opacity: 0.8;
-        }
-
-        .modal-close:hover {
-            opacity: 1;
-        }
-
-        .modal-body {
-            padding: 16px;
-            overflow-y: auto;
-            max-height: calc(85vh - 100px);
-            background: #e8e8e8;
-        }
-
-        .modal-footer {
-            padding: 12px 16px;
-            background: #d0d0d0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #bbb;
-        }
-
-        .modal-footer .total-price {
+        .user-panel {
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.9), rgba(101, 67, 33, 0.9));
+            border: 3px solid #8B4513;
+            border-radius: 12px;
+            padding: 8px 16px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: bold;
-            color: #333;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
         }
 
-        .modal-footer .btn-action {
-            background: linear-gradient(135deg, #4CAF50, #388E3C);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .modal-footer .btn-action:hover {
-            background: linear-gradient(135deg, #66BB6A, #43A047);
-        }
-
-        /* Item grid */
-        .shop-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 12px;
-        }
-
-        .shop-item {
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            padding: 12px 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .shop-item:hover {
-            border-color: #4CAF50;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .shop-item-icon {
-            font-size: 40px;
-            margin-bottom: 6px;
-        }
-
-        .shop-item-icon img {
+        .avatar {
             width: 50px;
-            height: auto;
-        }
-
-        .shop-item-name {
-            font-size: 12px;
-            color: #333;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-
-        .shop-item-price {
-            font-size: 11px;
-            color: #FF9800;
-            font-weight: bold;
-        }
-
-        .shop-item-qty {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: #4CAF50;
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-
-        /* Quantity selector */
-        .qty-selector {
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid #FFD700;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .qty-selector button {
-            width: 28px;
-            height: 28px;
-            border: none;
-            border-radius: 50%;
-            background: #4a4a4a;
+            font-size: 24px;
             color: white;
-            font-size: 16px;
-            cursor: pointer;
+            font-weight: bold;
+            overflow: hidden;
+            position: relative;
+            /* Ensure absolute positioned img is contained */
         }
 
-        .qty-selector button:hover {
-            background: #666;
-        }
-
-        .qty-selector input {
-            width: 40px;
-            text-align: center;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 4px;
-            font-size: 14px;
-        }
-
-        /* Submodal (confirmation dialog) */
-        .submodal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        .avatar img {
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
+            object-fit: cover;
         }
 
-        .submodal.active {
-            display: flex;
-        }
-
-        .submodal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 320px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .submodal-icon {
-            font-size: 40px;
-            margin-bottom: 12px;
-        }
-
-        .submodal-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-        }
-
-        .submodal-text {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 16px;
-        }
-
-        .submodal-buttons {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-        }
-
-        .submodal-buttons button {
-            padding: 10px 24px;
-            border: 2px solid #4a90d9;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .submodal-buttons .btn-ok {
-            background: #4a90d9;
+        .user-info {
             color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
-        .submodal-buttons .btn-cancel {
-            background: white;
-            color: #4a90d9;
+        .username {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .user-level {
+            font-size: 11px;
+            color: #FFD700;
         }
 
         /* Exp Bar */
         .exp-bar {
-            position: absolute;
-            top: 70px;
-            left: 10px;
-            width: 200px;
-            height: 20px;
+            width: 120px;
+            height: 12px;
             background: rgba(0, 0, 0, 0.5);
-            border-radius: 10px;
-            border: 2px solid #9C27B0;
+            border-radius: 6px;
+            border: 1px solid #9C27B0;
             overflow: hidden;
+            position: relative;
+            margin-top: 4px;
         }
 
         .exp-fill {
             height: 100%;
             background: linear-gradient(90deg, #9C27B0, #E040FB);
-            width: 35%;
+            width: 0%;
+            /* Dynamic */
+            transition: width 0.3s ease;
         }
 
         .exp-text {
@@ -718,2085 +298,357 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 11px;
+            font-size: 9px;
             font-weight: bold;
             text-shadow: 1px 1px 2px black;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.1);
-            }
-        }
-
-        /* Optimistic Harvest Animations */
-        .harvest-popup {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(56, 142, 60, 0.95));
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 16px;
-            animation: harvestFloat 1s ease-out forwards;
-            z-index: 100;
             white-space: nowrap;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        @keyframes harvestFloat {
-            0% {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0) scale(1);
-            }
-
-            50% {
-                opacity: 1;
-                transform: translateX(-50%) translateY(-25px) scale(1.1);
-            }
-
-            100% {
-                opacity: 0;
-                transform: translateX(-50%) translateY(-50px) scale(0.9);
-            }
-        }
-
-        .plot.harvesting {
-            animation: harvestPulse 0.4s ease-out;
-        }
-
-        @keyframes harvestPulse {
-            0% {
-                transform: scale(1);
-                filter: brightness(1);
-            }
-
-            50% {
-                transform: scale(1.15);
-                filter: brightness(1.3);
-            }
-
-            100% {
-                transform: scale(1);
-                filter: brightness(1);
-            }
-        }
-
-        .plot.pending {
-            opacity: 0.7;
-            pointer-events: none;
-        }
-
-        .plot.error {
-            animation: errorShake 0.5s ease-out;
-        }
-
-        @keyframes errorShake {
-
-            0%,
-            100% {
-                transform: translateX(0);
-            }
-
-            20%,
-            60% {
-                transform: translateX(-5px);
-            }
-
-            40%,
-            80% {
-                transform: translateX(5px);
-            }
-        }
-
-        /* Toast Notifications */
-        .toast {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 12px;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            z-index: 3000;
-            animation: toastSlide 0.3s ease-out;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            max-width: 90%;
-            text-align: center;
-        }
-
-        .toast.error {
-            background: linear-gradient(135deg, #F44336, #D32F2F);
-        }
-
-        .toast.success {
-            background: linear-gradient(135deg, #4CAF50, #388E3C);
-        }
-
-        .toast.warning {
-            background: linear-gradient(135deg, #FF9800, #F57C00);
-        }
-
-        @keyframes toastSlide {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
-        }
-
-        @keyframes toastFadeOut {
-            from {
-                opacity: 1;
-            }
-
-            to {
-                opacity: 0;
-            }
         }
     </style>
 </head>
 
 <body>
     <div id="game">
-        <!-- Game World (scales with background) -->
         <div id="game-world">
-            <!-- Factories/Buildings layer (behind plots) -->
-            <div id="factories-layer"></div>
-            <!-- Animals layer -->
-            <div id="animals-layer"></div>
-            <!-- Farm Grid (in front) -->
-            <div class="farm-grid" id="farm-grid"></div>
-        </div>
-
-        <!-- UI Layer (fixed to screen) -->
-        <!-- Top Left Stats -->
-        <div class="top-left-stats">
-            <div class="level-circle" id="level-circle">50</div>
-            <div class="stats-column">
-                <div class="resource silver"><span>🪙</span><span id="silver">1,250</span></div>
-                <div class="resource gold"><span>💎</span><span id="gold">50</span></div>
+            <div class="farm-container">
+                <div class="farm-grid" id="farm-grid"></div>
             </div>
         </div>
-
-        <!-- Right Sidebar (vertical buttons) -->
-        <div class="right-sidebar">
-            <div class="sidebar-btn cyan" onclick="showModal('settings')">⚙️</div>
-            <div class="sidebar-btn green" onclick="showModal('friends')">👥</div>
-            <div class="sidebar-btn orange" onclick="showModal('achievements')">🏆</div>
-            <div class="sidebar-btn red" onclick="showModal('notifications')">🔔</div>
-        </div>
-
-        <!-- Bottom Toolbar -->
-        <div class="bottom-toolbar">
-            <div class="toolbar-item" id="seed-selector" onclick="showCropSelector()">
-                <div class="icon" id="selected-seed-icon">🌱</div>
-                <span class="label" id="selected-seed-name">Семена</span>
-            </div>
-            <div class="toolbar-item" onclick="showModal('warehouse')">
-                <div class="icon">📦</div>
-                <span class="label">Склад</span>
-            </div>
-            <div class="toolbar-item" onclick="showModal('shop')">
-                <div class="icon">🛒</div>
-                <span class="label">Магазин</span>
-            </div>
-            <div class="toolbar-item" onclick="showModal('friends')">
-                <div class="icon">👨‍🌾</div>
-                <span class="label">Фермеры</span>
-            </div>
-        </div>
+        <div class="ui-layer top-l" id="ui-top-l"></div>
+        <div class="ui-layer res-l" id="ui-res-l"></div>
+        <div class="ui-layer side-l" id="ui-side-l"></div>
+        <div class="ui-layer tool-l" id="ui-tool-l"></div>
     </div>
-
-    <!-- Modal -->
     <div class="modal" id="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title" id="modal-title"></span>
-                <button class="modal-close" onclick="closeModal()">×</button>
-            </div>
-            <div class="modal-body" id="modal-body"></div>
-            <div class="modal-footer" id="modal-footer" style="display:none">
-                <div class="total-price">
-                    <span>Цена:</span>
-                    <span>🪙</span>
-                    <span id="modal-total">0</span>
-                </div>
-                <button class="btn-action" id="modal-action-btn">Продать всё</button>
-            </div>
-        </div>
+        <div class="modal-cnt" id="modal-cnt"></div>
     </div>
-
-    <!-- Submodal (confirmation) -->
     <div class="submodal" id="submodal">
-        <div class="submodal-content">
-            <div class="submodal-icon">ℹ️</div>
-            <div class="submodal-title" id="submodal-title">Подтверждение</div>
-            <div class="submodal-text" id="submodal-text">Вы уверены?</div>
-            <div class="submodal-buttons">
-                <button class="btn-ok" id="submodal-ok">OK</button>
-                <button class="btn-cancel" onclick="closeSubmodal()">Отмена</button>
-            </div>
-        </div>
+        <div class="sub-cnt" id="sub-cnt"></div>
     </div>
 
     <script>
-        const isLocal =
-            window.location.protocol === 'file:' ||
-            window.location.hostname === 'localhost' ||
-            window.location.hostname === '127.0.0.1';
-
-        const API_URL = isLocal
-            ? 'http://localhost:8000'
-            : 'https://happyfarmer2000.bacek97.deno.net';
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.includes('gridcoinwiki');
+        const API_URL = isLocal ? 'https://hfdeno.gridcoinwiki.online' : 'https://happyfarmer2000.bacek97.deno.net';
+        const TEST_INIT_DATA = 'user=%7B%22id%22%3A2201195991%2C%22first_name%22%3A%22lili%22%2C%22last_name%22%3A%22ammo%22%2C%22username%22%3A%22liliammo%22%2C%22language_code%22%3A%22ru%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Fa-ttgme.stel.com%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2FJUcxtVGWZsQkNQ9WzFouh13I2FUFiH8Mfs8GABDiIPutulu_Cn6sTXhj9XUOyG5Z.svg%22%7D&chat_instance=-8082336919381931303&chat_type=private&auth_date=1769720310&signature=_lEgdBbg9iH5LAEcfB0ggrPA2NJmAcP5_PU3FQeIE9soBoFRgeXT-yhNp9GuqDqfYvlgz_8gsZyT9yX3RudDCA&hash=496dd2cff628e53a229d1c31949b6501069707db33843b088380cb32b591fb58';
         const LANG = 'ru';
-        let CONFIGS = {}, currentTool = 'plant', plots = [];
-        let wasDragging = false; // Global flag to differentiate click vs drag
-        const factoryElements = {}; // Stores references to factory DOM elements
-        const animalElements = {}; // Stores references to animal DOM elements
-        let countdownInterval = null; // Global timer for plot updates
-
+        let CONFIGS = {}, inventory = {}, globals = {}, gameState = {};
         const tg = window.Telegram?.WebApp;
-        if (tg) { tg.ready(); tg.expand(); }
-
-        async function api(path, options = {}) {
-            console.log(`[API] Request: ${path}`, options);
-            try {
-                const headers = options.headers || {};
-                if (tg?.initData) {
-                    headers['Authorization'] = tg.initData;
-                }
-                if (options.body && !headers['Content-Type']) {
-                    headers['Content-Type'] = 'application/json';
-                }
-                const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-                const responseText = await res.text();
-
-                let result;
+        if (tg) {
+            tg.ready(); tg.expand();
+            if (isLocal && !tg.initData) {
+                tg.initData = TEST_INIT_DATA;
                 try {
-                    result = JSON.parse(responseText);
-                } catch (e) {
-                    console.error('Non-JSON response:', responseText);
-                    return { success: false, error: responseText.slice(0, 100) || 'Server error' };
-                }
-
-                // Handle HTTP error status codes
-                if (!res.ok) {
-                    console.error(`[API] HTTP ${res.status}:`, result);
-                    return {
-                        success: false,
-                        error: result.error || result.message || `Ошибка сервера (${res.status})`
-                    };
-                }
-
-                return result;
-            }
-            catch (e) {
-                console.error('API Error:', e);
-                return { success: false, error: e.message };
+                    const params = new URLSearchParams(TEST_INIT_DATA);
+                    tg.initDataUnsafe = Object.fromEntries(params.entries());
+                    if (tg.initDataUnsafe.user) tg.initDataUnsafe.user = JSON.parse(tg.initDataUnsafe.user);
+                } catch (e) { console.error("InitData parse error", e); }
             }
         }
 
-        function text(obj) { return obj?.[LANG] || obj?.en || ''; }
+        const api = async (p, o = {}) => {
+            const auth = tg?.initData || (isLocal ? TEST_INIT_DATA : '');
+            console.log(`[API] ${p} | Auth: ${auth ? 'YES' : 'NO'}`);
+            const h = { ...o.headers, 'Authorization': auth };
+            if (o.body && !h['Content-Type']) h['Content-Type'] = 'application/json';
+            const r = await fetch(`${API_URL}${p}`, { ...o, headers: h });
+            const t = await r.text();
+            try { return JSON.parse(t); } catch (e) { return { success: false, error: t }; }
+        };
 
-        // ===== Hasura GraphQL =====
-        const HASURA_URL = 'https://happy-farmer-2000.hasura.app/v1/graphql';
+        const text = (o) => typeof o === 'string' ? o : (o?.[LANG] || o?.en || '');
 
-        const initData = tg?.initData || '';
-        let inventory = {}; // {seed_tomato: 5, item_wheat: 10, silver: 1000}
-        let userId = tg?.initDataUnsafe?.user?.id || 0;
-        let selectedSeed = null; // Currently selected seed for quick planting
-
-        // ===== GameFSM - State Management with Rollback =====
-        class GameFSM {
-            constructor() {
-                this.history = [];
-                this.maxHistory = 10;
-                this.pendingActions = this.loadPendingActions();
+        const renderTemplate = (t, d) => {
+            let h = t || '';
+            while (h.includes('[[each:')) {
+                const m = h.match(/\[\[each:(\w+)\]\]/);
+                const l = m[1], s = m.index, e = h.indexOf('[[end]]', s);
+                const inner = h.substring(s + m[0].length, e);
+                const items = d[l] || [];
+                h = h.substring(0, s) + (Array.isArray(items) ? items.map(i => renderTemplate(inner, { ...d, ...i })).join('') : '') + h.substring(e + 7);
             }
+            return h.replace(/{{([\w.]+)}}/g, (m, k) => {
+                const val = k.split('.').reduce((o, i) => o?.[i], d);
+                return val !== undefined ? val : '';
+            });
+        };
 
-            // Save current game state for potential rollback
-            saveState(plots, inventory) {
-                this.history.push({
-                    plots: JSON.parse(JSON.stringify(plots)),
-                    inventory: JSON.parse(JSON.stringify(inventory)),
-                    timestamp: Date.now()
+        const executeAction = async (cfg, data = {}) => {
+            if (!cfg) return;
+            if (Array.isArray(cfg)) { for (const s of cfg) await executeAction(s, data); return; }
+            if (cfg.confirm && !confirm(text(cfg.confirm))) return;
+            if (cfg.set_global) {
+                for (const [k, v] of Object.entries(cfg.set_global)) globals[k] = renderTemplate(v, { ...data, ...globals });
+                renderUI(); return;
+            }
+            if (cfg.modal) { showModal(cfg.modal, { ...data, ...cfg.modal_data }); return; }
+            if (cfg.api) {
+                const r = await api(renderTemplate(cfg.api.path, { ...data, userId: tg?.initDataUnsafe?.user?.id, ...globals }), {
+                    method: cfg.api.method || 'GET', body: cfg.api.body ? JSON.stringify(cfg.api.body) : undefined
                 });
-                if (this.history.length > this.maxHistory) {
-                    this.history.shift();
-                }
+                if (r.success) {
+                    if (cfg.on_success) await executeAction(cfg.on_success, { ...data, ...r });
+                    if (cfg.reload) location.reload();
+                    if (cfg.toast) showToast(text(cfg.toast), 'success');
+                } else showToast(r.error || 'Error', 'error');
             }
-
-            // Rollback to previous state
-            rollback() {
-                return this.history.pop() || null;
-            }
-
-            // Clear state history (after confirmed sync)
-            clearHistory() {
-                this.history = [];
-            }
-
-            // ===== Offline Action Queue =====
-            loadPendingActions() {
-                try {
-                    const stored = localStorage.getItem('farm_pending_actions');
-                    return stored ? JSON.parse(stored) : [];
-                } catch (e) {
-                    console.error('[FSM] Failed to load pending actions:', e);
-                    return [];
-                }
-            }
-
-            savePendingActions() {
-                try {
-                    localStorage.setItem('farm_pending_actions', JSON.stringify(this.pendingActions));
-                } catch (e) {
-                    console.error('[FSM] Failed to save pending actions:', e);
-                }
-            }
-
-            // Add action to pending queue
-            queueAction(action) {
-                const actionId = `${action.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                this.pendingActions.push({
-                    id: actionId,
-                    ...action,
-                    createdAt: Date.now(),
-                    retries: 0
-                });
-                this.savePendingActions();
-                return actionId;
-            }
-
-            // Remove completed action from queue
-            completeAction(actionId) {
-                this.pendingActions = this.pendingActions.filter(a => a.id !== actionId);
-                this.savePendingActions();
-            }
-
-            // Get pending action by ID
-            getAction(actionId) {
-                return this.pendingActions.find(a => a.id === actionId);
-            }
-
-            // Process all pending actions (on reconnect)
-            async syncPendingActions(executeCallback) {
-                if (this.pendingActions.length === 0) return { synced: 0, failed: 0 };
-
-                console.log(`[FSM] Syncing ${this.pendingActions.length} pending actions...`);
-                let synced = 0, failed = 0;
-
-                for (const action of [...this.pendingActions]) {
-                    try {
-                        await executeCallback(action);
-                        this.completeAction(action.id);
-                        synced++;
-                    } catch (e) {
-                        console.error(`[FSM] Failed to sync action ${action.id}:`, e);
-                        action.retries++;
-                        if (action.retries >= 3) {
-                            // Give up after 3 retries
-                            this.completeAction(action.id);
-                            failed++;
-                        }
-                    }
-                }
-                this.savePendingActions();
-                return { synced, failed };
-            }
-
-            hasPendingActions() {
-                return this.pendingActions.length > 0;
-            }
-        }
-
-        const gameFSM = new GameFSM();
-
-        // ===== UI Helper Functions =====
-        function showToast(message, type = 'success', duration = 3000) {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'toastFadeOut 0.3s ease-out forwards';
-                setTimeout(() => toast.remove(), 300);
-            }, duration);
-        }
-
-
-        // Check online status and sync pending actions
-        async function checkAndSyncPendingActions() {
-            if (!navigator.onLine || !gameFSM.hasPendingActions()) return;
-
-            const result = await gameFSM.syncPendingActions(async (action) => {
-                if (action.type === 'harvest') {
-                    const response = await fetch(`${API_URL}/api/harvest?id=${action.objectId}`, {
-                        headers: { 'Authorization': tg?.initData || '' }
-                    });
-                    const result = await response.json();
-                    if (result.error && result.error !== 'Withered') {
-                        throw new Error(result.error);
-                    }
-                }
-            });
-
-            if (result.synced > 0) {
-                showToast(`Синхронизировано: ${result.synced} действий`, 'success');
-                await loadInventory(); // Refresh inventory from server
-            }
-            if (result.failed > 0) {
-                showToast(`Ошибка синхронизации: ${result.failed} действий`, 'error');
-            }
-        }
-
-        // Listen for online event to sync
-        window.addEventListener('online', () => {
-            console.log('[FSM] Back online, syncing...');
-            setTimeout(checkAndSyncPendingActions, 1000);
-        });
-
-
-        async function gql(query, variables = {}) {
-            try {
-                const res = await fetch(HASURA_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': initData
-                    },
-                    body: JSON.stringify({ query, variables })
-                });
-                const json = await res.json();
-                if (json.errors) {
-                    console.error('GraphQL errors:', json.errors);
-                    throw new Error(json.errors[0]?.message || 'GraphQL error');
-                }
-                return json.data;
-            } catch (e) {
-                console.error('GQL Error:', e);
-                return null;
-            }
-        }
-
-        // Load user inventory from user_stats
-        async function loadInventory() {
-            const data = await gql(`
-                query {
-                    user_stats {
-                        key
-                        value
-                    }
-                }
-            `);
-            inventory = {};
-            (data?.user_stats || []).forEach(s => {
-                inventory[s.key] = s.value;
-            });
-            updateResourcesUI();
-            return inventory;
-        }
-
-        // Update single stat in DB
-        async function updateStat(key, value) {
-            const result = await gql(`
-                mutation($userId: bigint!, $key: String!, $value: Int!) {
-                    insert_user_stats_one(
-                        object: {user_id: $userId, key: $key, value: $value}
-                        on_conflict: {constraint: user_stats_pkey, update_columns: [value, updated_at]}
-                    ) { key }
-                }
-            `, { userId, key, value });
-
-            if (!result) {
-                throw new Error('Ошибка обновления данных на сервере');
-            }
-
-            inventory[key] = value;
-        }
-
-        // Add/subtract from stat
-        async function modifyStat(key, delta) {
-            const current = inventory[key] || 0;
-            const newVal = Math.max(0, current + delta);
-            await updateStat(key, newVal);
-            return newVal;
-        }
-
-        function updateResourcesUI() {
-            document.getElementById('silver').textContent = (inventory.silver || 0).toLocaleString();
-            document.getElementById('gold').textContent = (inventory.gold || 0).toLocaleString();
-        }
-
-        // ===== Planted Crops DB =====
-
-        // Restore planted crops from database on game load
-        async function restorePlantedCrops() {
-            console.log('[DB] Restoring planted crops...');
-            const plantedCrops = await api('/api/crops');
-            console.log('[DB] Found crops:', plantedCrops);
-
-            for (const obj of plantedCrops) {
-                const plotId = obj.x;
-                const cropCode = obj.type_code.replace('crop_', '');
-                const state = obj.calculated_state || { stage: 'seed' };
-                const params = obj.params_map || {};
-
-                const plantedAt = parseInt(params.planted_at) || new Date(obj.created_at).getTime();
-                const cropCfg = await api(`/api/configs/crops/${cropCode}`);
-                if (!cropCfg) continue;
-
-                const currentStage = state.stage;
-                const isReady = state.isReady;
-                const isWithered = state.isWithered;
-
-                // Update plot state
-                const yieldAmount = parseInt(params.yield || "2");
-
-                console.log(`[DB] Plot ${plotId}: crop=${cropCode}, stage=${currentStage}, isWithered=${isWithered}, yield=${yieldAmount}`);
-
-                plots[plotId] = {
-                    state: isWithered ? 'withered' : (isReady ? 'ready' : 'planted'),
-                    crop: cropCode,
-                    stage: currentStage,
-                    config: cropCfg,
-                    plantedAt,
-                    objectId: obj.id,
-                    yieldAmount
-                };
-
-                // Update plot visual
-                const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-                if (plotEl) {
-                    plotEl.classList.remove('empty', 'blocked');
-                    plotEl.classList.add('planted');
-
-                    const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓', withered: '💀' };
-                    const img = cropCfg?.stages?.[currentStage]?.image;
-                    const html = img
-                        ? `<img src="${img}" class="crop-img">`
-                        : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (currentStage === 'ripe' ? '🍎' : '🌱')}</div>`;
-                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames[currentStage] || currentStage}</span>`;
-
-                    // Add withered styling
-                    if (isWithered) {
-                        plotEl.style.filter = 'grayscale(60%) brightness(0.8)';
-                    }
-                }
-            }
-        }
-
-        startCountdownTimers();
-
-        // ===== Countdown Timer System =====
-
-        function formatTime(seconds) {
-            if (seconds <= 0) return '0s';
-            if (seconds < 60) return `${Math.floor(seconds)}s`;
-            if (seconds < 3600) {
-                const mins = Math.floor(seconds / 60);
-                const secs = Math.floor(seconds % 60);
-                return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
-            }
-            const hours = Math.floor(seconds / 3600);
-            const mins = Math.floor((seconds % 3600) / 60);
-            return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-        }
-
-        function updatePlotTimer(plotId) {
-            const plot = plots[plotId];
-            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            if (!plotEl || !plot || plot.state === 'empty' || plot.state === 'blocked') return;
-
-            // Remove existing timer
-            const existingTimer = plotEl.querySelector('.countdown-timer');
-            if (existingTimer) existingTimer.remove();
-
-            if (plot.state === 'withered') return; // No timer for withered
-
-            const cropCfg = plot.config;
-            if (!cropCfg) return;
-
-            const stageTimes = cropCfg.stage_times || [30, 60, 90]; // in seconds
-            const witherTime = cropCfg.wither_time || 3600;
-            const elapsed = (Date.now() - plot.plantedAt) / 1000; // in seconds
-
-            let timeSum = 0;
-            let nextStageTime = null;
-            let isLastStage = false;
-
-            // Find time to next stage
-            for (let i = 0; i < stageTimes.length; i++) {
-                timeSum += stageTimes[i];
-                if (elapsed < timeSum) {
-                    nextStageTime = timeSum - elapsed;
-                    break;
-                }
-            }
-
-            // If past all stages, show wither countdown
-            const totalGrowTime = stageTimes.reduce((a, b) => a + b, 0);
-            if (elapsed >= totalGrowTime) {
-                isLastStage = true;
-                const witherDeadline = totalGrowTime + witherTime;
-                nextStageTime = witherDeadline - elapsed;
-            }
-
-            if (nextStageTime === null || nextStageTime <= 0) return;
-
-            // Determine urgency class
-            let urgencyClass = '';
-            if (isLastStage) {
-                // Wither countdown - more urgent
-                if (nextStageTime < 60) urgencyClass = 'danger';
-                else if (nextStageTime < 300) urgencyClass = 'warning';
-            } else {
-                // Growth countdown - less urgent
-                if (nextStageTime < 10) urgencyClass = 'warning';
-            }
-
-            const icon = isLastStage ? '⏰' : '🌱';
-            const timer = document.createElement('div');
-            timer.className = `countdown-timer ${urgencyClass}`;
-            timer.innerHTML = `${icon} ${formatTime(nextStageTime)}`;
-            plotEl.appendChild(timer);
-        }
-
-        function updateAllPlotTimers() {
-            for (let i = 0; i < plots.length; i++) {
-                if (plots[i] && plots[i].state !== 'empty' && plots[i].state !== 'blocked') {
-                    updatePlotTimer(i);
-
-                    // Check for stage transitions
-                    checkStageTransition(i);
-                }
-            }
-        }
-
-        function checkStageTransition(plotId) {
-            const plot = plots[plotId];
-            if (!plot || !plot.config || plot.state === 'empty' || plot.state === 'withered') return;
-
-            const cropCfg = plot.config;
-            const stageTimes = cropCfg.stage_times || [30, 60, 90];
-            const witherTime = cropCfg.wither_time || 3600;
-            const elapsed = (Date.now() - plot.plantedAt) / 1000;
-            const totalGrowTime = stageTimes.reduce((a, b) => a + b, 0);
-
-            // Dynamic stages: read from config, filter out 'withered', ensure proper order
-            const allStageKeys = Object.keys(cropCfg.stages || {});
-            // Build stages array: start with 'seed', then intermediate stages, end with 'ripe'
-            const stages = allStageKeys.filter(s => s !== 'withered' && s !== 'seed' && s !== 'ripe');
-            stages.unshift('seed'); // Add seed at the beginning
-            stages.push('ripe');    // Add ripe at the end
-
-            let timeSum = 0;
-            let currentStageIndex = 0;
-
-            // Determine current stage based on elapsed time
-            for (let i = 0; i < stageTimes.length; i++) {
-                timeSum += stageTimes[i];
-                if (elapsed >= timeSum && i + 1 < stages.length) {
-                    currentStageIndex = i + 1;
-                }
-            }
-
-            let currentStage = stages[currentStageIndex] || 'seed';
-
-            if (elapsed >= totalGrowTime) {
-                currentStage = 'ripe';
-                plot.state = 'ready';
-            }
-
-            // Check for wither (only if wither_time > 0)
-            if (witherTime > 0 && elapsed >= totalGrowTime + witherTime) {
-                currentStage = 'withered';
-                plot.state = 'withered';
-            }
-
-            // Update visual if stage changed
-            if (currentStage !== plot.stage) {
-                plot.stage = currentStage;
-                const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-                if (plotEl) {
-                    // Dynamic stage indicator: X/N format
-                    const stageIndex = stages.indexOf(currentStage);
-                    const totalStages = stages.length;
-                    const isRipe = currentStage === 'ripe';
-                    const isWithered = currentStage === 'withered';
-                    const stageLabel = isWithered ? '💀' : (isRipe ? '✓' : `${stageIndex + 1}/${totalStages}`);
-
-                    const img = cropCfg?.stages?.[currentStage]?.image;
-                    const html = img
-                        ? `<img src="${img}" class="crop-img">`
-                        : `<div class="crop-img" style="font-size:30px;text-align:center">${isWithered ? '🥀' : (isRipe ? '🍎' : '🌱')}</div>`;
-                    plotEl.innerHTML = `${html}<span class="stage-indicator">${stageLabel}</span>`;
-
-                    if (isWithered) {
-                        plotEl.style.filter = 'grayscale(60%) brightness(0.8)';
-                    }
-                }
-            }
-        }
-
-        function startCountdownTimers() {
-            // Clear existing interval
-            if (countdownInterval) clearInterval(countdownInterval);
-
-            // Update immediately
-            updateAllPlotTimers();
-
-            // Update every second
-            countdownInterval = setInterval(updateAllPlotTimers, 1000);
-        }
-
-        function initDesktopScroll() {
-            const game = document.getElementById('game');
-            let isDown = false;
-            let startX, startY, scrollLeft, scrollTop;
-            let moveThreshold = 5; // Pixels to move before considering it a drag
-
-            game.addEventListener('mousedown', (e) => {
-                // Allow dragging on everything, but still check for UI buttons
-                if (e.target.closest('.tool, .action-btn, .modal, .submodal')) return;
-
-                isDown = true;
-                wasDragging = false;
-                game.style.cursor = 'grabbing';
-                startX = e.pageX - game.offsetLeft;
-                startY = e.pageY - game.offsetTop;
-                scrollLeft = game.scrollLeft;
-                scrollTop = game.scrollTop;
-            });
-
-            window.addEventListener('mouseup', () => {
-                isDown = false;
-                game.style.cursor = 'grab';
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-
-                const x = e.pageX - game.offsetLeft;
-                const y = e.pageY - game.offsetTop;
-                const walkX = (x - startX);
-                const walkY = (y - startY);
-
-                // If moved more than threshold, set wasDragging to true
-                if (Math.abs(walkX) > moveThreshold || Math.abs(walkY) > moveThreshold) {
-                    wasDragging = true;
-                }
-
-                if (wasDragging) {
-                    e.preventDefault();
-                    game.scrollLeft = scrollLeft - walkX;
-                    game.scrollTop = scrollTop - walkY;
-                }
-            });
-        }
-
-        function centerMap() {
-            const game = document.getElementById('game');
-            const world = document.getElementById('game-world');
-            if (game && world) {
-                game.scrollLeft = (world.offsetWidth - game.offsetWidth) / 2;
-                game.scrollTop = (world.offsetHeight - game.offsetHeight) / 2;
-            }
-        }
-
-        async function init() {
-            initDesktopScroll();
-            centerMap();
-            const user = tg?.initDataUnsafe?.user;
-            // Update level circle
-            const levelCircle = document.getElementById('level-circle');
-            if (levelCircle) levelCircle.textContent = '5';
-
+        };
+
+        const showModal = async (code, data = {}) => {
+            const cfg = CONFIGS.ui?.[code] || await api(`/api/configs/ui/${code}`);
+            if (!cfg) return;
+            const cnt = document.getElementById('modal-cnt');
+            const invList = Object.entries(inventory).map(([k, v]) => ({ code: k, value: v }));
+            const context = { ...cfg, ...data, inventory, invList, globals, title: text(cfg.name) };
+            cnt.innerHTML = renderTemplate((cfg.template?.header || '') + (cfg.template?.body || '') + (cfg.template?.footer || ''), context);
+            document.getElementById('modal').classList.add('active');
+        };
+
+        const showToast = (m, t = 'success') => {
+            const el = document.createElement('div'); el.className = `toast ${t}`; el.textContent = m;
+            document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
+        };
+
+        const init = async () => {
             CONFIGS = await api('/api/configs');
+            const user = await api('/api/user');
+            inventory = { silver: 0, gold: 0, energy: 0, ...user?.inventory };
+            globals = { selectedSeed: '' };
+
+            // Render static grid immediately
             const plotCfg = await api('/api/configs/plots/plot');
+            renderUnderlay(plotCfg);
+            scaleGameWorld();
+            window.addEventListener('resize', scaleGameWorld);
 
-            // Load crops config for quick seed selection
-            CONFIGS.crops = await api('/api/configs/crops');
+            renderUI();
 
-            // Cache plot config for optimistic harvest
-            CONFIGS.plots = { plot: plotCfg };
+            const sync = new HasuraSync('https://happy-farmer-2000.hasura.app/v1/graphql', tg?.initData);
+            sync.connect();
 
-            // Load user inventory from database
-            await loadInventory();
+            const statsQuery = `subscription { user_stats(where: {user_id: {_eq: "${user.id}"}}) { key value } }`;
+            console.log('[SYNC] Subscribing to stats:', statsQuery);
+            sync.subscribe('stats', statsQuery, {}, (data) => {
+                console.log('[SYNC] Stats Update received:', data);
+                if (data.user_stats) {
+                    data.user_stats.forEach(s => inventory[s.key] = s.value);
+                    renderUI();
+                }
+            });
 
-            // Sync any pending offline actions
-            await checkAndSyncPendingActions();
+            const worldQuery = `subscription { game_objects(where: {user_id: {_eq: "${user.id}"}}) { id type_code x y created_at params { key value } checkpoints { action deadline time_offset done_at } } }`;
+            console.log('[SYNC] Subscribing to world:', worldQuery);
+            sync.subscribe('world', worldQuery, {}, (data) => {
+                console.log('[SYNC] World Update received:', data);
+                if (data.game_objects) {
+                    const objects = data.game_objects.map(obj => {
+                        const params = {};
+                        obj.params.forEach(p => params[p.key] = p.value);
+                        const state = calculateObjectState(obj.checkpoints, params, obj);
+                        return { ...obj, params, calculated_state: state };
+                    });
+                    updateWorld(objects);
+                }
+            });
+        };
 
-            // Load map objects (factories) FIRST so they appear behind plots
-            await loadMapObjects();
+        const calculateObjectState = (checkpoints, params, obj) => {
+            const now = Date.now();
+            const createdAt = new Date(obj.created_at).getTime();
 
-            // Load animals from API and display them
-            await loadAnimals();
+            // Basic stages for crops
+            if (obj.type_code.startsWith('crop_')) {
+                const code = obj.type_code.replace('crop_', '');
+                const cfg = CONFIGS.crops?.[code];
+                if (!cfg) return { stage: 'unknown' };
 
-            // Load plots count from API
-            const plotsData = await api('/api/plots');
-            const plotsCount = plotsData?.plots_count || plotCfg?.base_plots || 6;
-            const totalPlots = plotCfg?.total_plots || 32;
+                const elapsed = (now - createdAt) / 1000;
+                let totalTime = 0;
+                for (let i = 0; i < cfg.stage_times.length; i++) {
+                    totalTime += cfg.stage_times[i];
+                    if (elapsed < totalTime) return { stage: i === 0 ? 'seed' : (i === 1 ? 'sprout' : 'growing') };
+                }
+
+                // Check harvest checkpoint for withered
+                const harvest = checkpoints?.find(c => c.action === 'harvest');
+                if (harvest && !harvest.done_at && now > (createdAt + harvest.deadline * 1000)) return { stage: 'withered' };
+
+                return { stage: 'ready' };
+            }
+
+            // Factories
+            if (obj.type_code.startsWith('factory_')) {
+                const finish = checkpoints?.find(c => c.action === 'finish_production' && !c.done_at);
+                if (finish) return { stage: now > (createdAt + finish.deadline * 1000) ? 'ready' : 'processing' };
+                return { stage: 'idle' };
+            }
+
+            return { stage: 'idle' };
+        };
+
+        const getObjectConfig = (typeCode) => {
+            if (typeCode.startsWith('crop_')) return CONFIGS.crops?.[typeCode.replace('crop_', '')];
+            if (typeCode.startsWith('factory_')) return CONFIGS.factories?.[typeCode.replace('factory_', '')];
+            if (typeCode.startsWith('animal_')) return CONFIGS.animals?.[typeCode.replace('animal_', '')];
+            return CONFIGS.objects?.[typeCode];
+        };
+
+        const renderUI = () => {
+            ['top-l', 'res-l', 'side-l', 'tool-l'].forEach(l => {
+                const code = l.replace('-', '_');
+                const cfg = CONFIGS.ui?.[code];
+                const el = document.getElementById(`ui-${l}`);
+                if (cfg && el) el.innerHTML = renderTemplate(cfg.template, { inventory, globals });
+            });
+        };
+
+        const updateWorld = (objects) => {
+            const world = document.getElementById('game-world');
+            objects.forEach(obj => {
+                let el;
+                // Try to find existing static plot element first
+                if (obj.type_code.startsWith('crop_')) {
+                    // Assuming obj.x is the plot ID for crops
+                    el = document.getElementById(`plot-base-${obj.x}`);
+                }
+
+                // If not found or not a crop, look for dynamic object element
+                if (!el) {
+                    el = document.getElementById(`obj-${obj.id}`);
+                }
+
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = `obj-${obj.id}`;
+                    el.className = 'obj';
+                    // For non-plot objects, append to world
+                    // For crops that didn't match a base plot, this might be a fallback
+                    if (!obj.type_code.startsWith('crop_')) {
+                        el.className = 'map-object';
+                        world.appendChild(el);
+                        el.onclick = () => onObjectClick(obj.id);
+                    }
+                }
+
+                gameState[obj.id] = obj;
+                renderObject(el, obj);
+            });
+        };
+
+        const renderObject = (el, obj) => {
+            const cfg = getObjectConfig(obj.type_code);
+            if (!cfg) return;
+
+            const state = obj.calculated_state?.stage || 'idle';
+            const stageInfo = cfg.stages?.[state] || {};
+
+            // Positioning for non-plot objects
+            if (!obj.type_code.startsWith('crop_')) {
+                el.style.left = `${obj.x}px`;
+                el.style.top = `${obj.y}px`;
+                // Render icon/label for map objects
+                const imagePath = stageInfo.image ? `${stageInfo.image}` : null;
+                const iconHtml = imagePath
+                    ? `<img src="${imagePath}" class="object-icon" style="width:80px;height:auto;">`
+                    : `<span class="object-icon">${cfg.icon || '🏭'}</span>`;
+
+                el.innerHTML = `
+                    ${iconHtml}
+                    <div class="object-label">${text(cfg.name)}</div>
+                 `;
+            } else {
+                // Crop rendering inside plot
+                el.className = `plot ${state === 'empty' ? 'empty' : 'planted'}`;
+                // If we have a crop config, show image
+                const imagePath = stageInfo.image ? `${stageInfo.image}` : null;
+                const html = imagePath
+                    ? `<img src="${imagePath}" class="crop-img">`
+                    : (state !== 'empty' ? `<div class="crop-img" style="font-size:30px;text-align:center">🌱</div>` : '');
+
+                // Add stage indicator if planted
+                const indicator = state !== 'empty' && state !== 'ready'
+                    ? `<span class="stage-indicator">${state}</span>`
+                    : '';
+
+                el.innerHTML = html + indicator;
+                el.onclick = () => onObjectClick(obj.id);
+            }
+        };
+
+        const onObjectClick = (id) => {
+            const obj = gameState[id];
+            const cfg = getObjectConfig(obj.type_code);
+            if (!cfg?.actions?.on_click) return;
+            const action = cfg.actions.on_click.find(a => !a.condition || evalCondition(a.condition, { ...obj, ...obj.params, ...globals, inventory }));
+            if (action) executeAction(action, obj);
+        };
+
+        const onPlotClick = (id) => {
+            console.log('Plot clicked:', id);
+            // Check if there is already an object on this plot in gameState
+            const plotObj = Object.values(gameState).find(o => o.type_code.startsWith('crop_') && o.x === id);
+
+            if (plotObj) {
+                console.log('Plot has object:', plotObj);
+                onObjectClick(plotObj.id);
+            } else {
+                console.log('Empty plot click, planting...');
+                // Hardcoded plant action for now or fetch from plot config
+                api('/api/configs/plots/plot').then(cfg => {
+                    // Find 'plant' action or similar that is valid for empty state
+                    const action = cfg?.actions?.on_click?.find(a => !a.condition || evalCondition(a.condition, { state: 'empty', inventory, globals }));
+                    if (action) {
+                        executeAction(action, { x: id });
+                    } else {
+                        // Fallback: show crop selector directly if no config action found
+                        showModal('shop', { plotId: id });
+                    }
+                });
+            }
+        };
+
+        const evalCondition = (cond, ctx) => {
+            try { return new Function('state', 'inventory', 'globals', `with(state||{}) { with(inventory||{}) { with(globals||{}) { return ${cond}; } } }`)(ctx, inventory, globals); } catch (e) { return false; }
+        };
+
+        const closeModal = () => document.getElementById('modal').classList.remove('active');
+        const closeSubmodal = () => document.getElementById('submodal').classList.remove('active');
+
+        const renderUnderlay = (plotCfg) => {
             const grid = document.getElementById('farm-grid');
-            const emptyPlotImg = plotCfg?.stages?.empty?.image;
-            const blockedPlotImg = plotCfg?.stages?.blocked?.image;
-            const cols = 4;
-            const gapX = 52, gapY = 26; // half tile size for isometric grid
+            if (!grid) return;
+            grid.innerHTML = '';
 
-            for (let i = 0; i < totalPlots; i++) {
-                const isBlocked = i >= plotsCount;
-                plots[i] = { state: isBlocked ? 'blocked' : 'empty', crop: null, stage: 0 };
+            const cols = 4;
+            const gapX = 52, gapY = 26; // Half tile dimensions
+
+            for (let i = 0; i < (plotCfg?.base_plots || 12); i++) {
                 const row = Math.floor(i / cols);
                 const col = i % cols;
-
-                // Isometric diamond grid positioning (row 0 at top-left)
-                const x = (row - col) * gapX + 450;
-                const y = (col + row) * gapY + 350;
+                const x = (row - col) * gapX + 200; // Center offset
+                const y = (col + row) * gapY + 50;
 
                 const plot = document.createElement('div');
-                plot.className = isBlocked ? 'plot blocked' : 'plot empty';
-                plot.dataset.id = i;
+                plot.className = 'plot empty';
+                plot.id = `plot-base-${i}`;
                 plot.style.left = `${x}px`;
                 plot.style.top = `${y}px`;
-
-                const plotImg = isBlocked ? blockedPlotImg : emptyPlotImg;
-                if (plotImg) {
-                    plot.style.backgroundImage = `url('${plotImg}')`;
+                // Use a default empty image if available, or just CSS styling from class
+                if (plotCfg?.stages?.empty?.image) {
+                    plot.style.backgroundImage = `url('${plotCfg.stages.empty.image}')`;
                 }
-                if (isBlocked) {
-                    plot.style.opacity = '0.5';
-                }
+                // Attach click handler for empty plot interaction
                 plot.onclick = () => onPlotClick(i);
                 grid.appendChild(plot);
             }
-
-            // Load planted crops from database and restore visuals
-            await restorePlantedCrops();
-
-            // Setup toolbar
-            document.querySelectorAll('.tool').forEach(tool => {
-                tool.onclick = () => {
-                    document.querySelector('.tool.active')?.classList.remove('active');
-                    tool.classList.add('active');
-                    currentTool = tool.dataset.tool;
-                };
-            });
-
-            // Center map initially
-            centerMap();
-        }
-
-        async function loadMapObjects() {
-            const factoriesLayer = document.getElementById('factories-layer');
-            if (!factoriesLayer) return;
-
-            const factories = await api('/api/configs/factories');
-            const factoryStates = await api('/api/factories');
-
-            for (const [code, cfg] of Object.entries(factories || {})) {
-                if (!cfg.position) continue; // Skip factories without position
-
-                const factoryObj = factoryStates?.find(f => f.type_code === `factory_${code}`);
-                const state = factoryObj?.calculated_state || { stage: 'idle' };
-                const params = {};
-                (factoryObj?.params || []).forEach(p => params[p.key] = p.value);
-
-                const isReady = state.stage === 'ready';
-                const stageImage = isReady ? (cfg.stages?.ready?.image || cfg.stages?.idle?.image) : (state.stage === 'processing' ? (cfg.stages?.processing?.image || cfg.stages?.idle?.image) : cfg.stages?.idle?.image);
-                const imagePath = stageImage ? `${stageImage}` : null;
-                const iconWidth = cfg.size?.width || 80;
-                const iconHtml = imagePath
-                    ? `<img src="${imagePath}" alt="${text(cfg.name)}" style="width:${iconWidth}px;height:auto;">`
-                    : `<span style="font-size:70px">${cfg.icon || '🏭'}</span>`;
-                const statusIcon = isReady ? '✅' : (state.stage === 'processing' ? '⏳' : '');
-                const isDecoration = cfg.decoration === true;
-
-                let obj = factoryElements[code];
-                if (!obj) {
-                    obj = document.createElement('div');
-                    obj.className = isDecoration ? 'map-object decoration' : 'map-object';
-                    obj.style.left = `${cfg.position.x + 600}px`;
-                    obj.style.top = `${cfg.position.y + 450}px`;
-                    if (isDecoration) {
-                        obj.style.pointerEvents = 'none';
-                        obj.style.cursor = 'default';
-                    } else {
-                        obj.onclick = () => showFactoryModal(code, cfg);
-                    }
-                    factoriesLayer.appendChild(obj);
-                    factoryElements[code] = obj;
-                }
-
-                const newContent = isDecoration
-                    ? `<div class="object-icon">${iconHtml}</div>`
-                    : `<div class="object-icon">${iconHtml}</div>
-                       <div class="object-label">${text(cfg.name)}</div>
-                       ${statusIcon ? `<div class="animal-status" style="top:-10px;right:-10px;background:${isReady ? '#4CAF50' : '#FF9800'}">${statusIcon}</div>` : ''}`;
-
-                if (obj.innerHTML !== newContent) {
-                    obj.innerHTML = newContent;
-                }
-            }
-        }
-
-        // ===== Animals Display =====
-        async function loadAnimals() {
-            const animalsLayer = document.getElementById('animals-layer');
-            if (!animalsLayer) return;
-
-            // Fetch owned animals from API
-            const ownedAnimals = await api('/api/animals');
-            const animalsConfig = await api('/api/configs/animals');
-
-            if (!ownedAnimals || !animalsConfig) {
-                console.log('[ANIMALS] No animals found or config missing');
-                return;
-            }
-
-            const updatedIds = new Set();
-
-            ownedAnimals.forEach(animal => {
-                const code = animal.type_code.replace('animal_', '');
-                const cfg = animalsConfig[code];
-                if (!cfg) return;
-
-                const state = animal.calculated_state || { stage: 'hungry' };
-                const params = {};
-                (animal.params || []).forEach(p => params[p.key] = p.value);
-                const stage = state.stage;
-                const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
-                const iconHtml = stageImg.startsWith('fsm/') || stageImg.startsWith('/')
-                    ? `<img src="${stageImg}" style="width:80px;height:auto;">`
-                    : `<span style="font-size:60px">${stageImg}</span>`;
-
-                const statusIcon = stage === 'ready' ? '🥛' : (stage === 'fed' || stage === 'growing' ? '⏳' : '😋');
-
-                let animalEl = animalElements[animal.id];
-                if (!animalEl) {
-                    animalEl = document.createElement('div');
-                    animalEl.className = 'animal-object';
-                    animalEl.dataset.id = animal.id;
-                    animalEl.style.left = `${animal.x + 600}px`;
-                    animalEl.style.top = `${animal.y + 450}px`;
-                    animalEl.onclick = () => showAnimalModal(animal.id, code, cfg, params, state);
-                    animalsLayer.appendChild(animalEl);
-                    animalElements[animal.id] = animalEl;
-                }
-
-                const newContent = `
-                    <div class="animal-icon">${iconHtml}</div>
-                    <div class="animal-label">${text(cfg.name)}</div>
-                    <div class="animal-status">${statusIcon}</div>
-                `;
-
-                if (animalEl.innerHTML !== newContent) {
-                    animalEl.innerHTML = newContent;
-                }
-
-                // Update position in case it changed (e.g. animal moved)
-                animalEl.style.left = `${animal.x + 600}px`;
-                animalEl.style.top = `${animal.y + 450}px`;
-
-                updatedIds.add(animal.id.toString());
-            });
-
-            // Remove animals that are no longer owned
-            Object.keys(animalElements).forEach(id => {
-                if (!updatedIds.has(id)) {
-                    const el = animalElements[id];
-                    if (el && el.parentNode) {
-                        el.parentNode.removeChild(el);
-                    }
-                    delete animalElements[id];
-                }
-            });
-        }
-
-        // Show modal for animal details
-        async function showAnimalModal(id, code, cfg, params, state = {}) {
-            if (wasDragging) return;
-            document.getElementById('modal-title').textContent = text(cfg.name);
-            document.getElementById('modal-footer').style.display = 'none';
-
-            const stage = state.stage || 'hungry';
-            const stageImg = cfg.stages?.[stage]?.image || cfg.icon;
-
-            let html = `<div style="text-align:center; padding:20px;">`;
-            if (stageImg.startsWith('fsm/') || stageImg.startsWith('/')) {
-                html += `<img src="${stageImg}" style="width:150px;height:auto;margin-bottom:15px;border-radius:12px;">`;
-            } else {
-                html += `<div style="font-size:80px;margin-bottom:15px;">${stageImg}</div>`;
-            }
-
-            html += `
-                <p style="color:#5D4037;margin-bottom:15px;">${text(cfg.description)}</p>
-                <div style="background:rgba(255,255,255,0.5);padding:15px;border-radius:10px;margin-bottom:15px;text-align:left;">
-                    <div><b>Статус:</b> ${text(cfg.stages?.[stage]?.messages) || stage}</div>
-                    ${(stage === 'fed' || stage === 'growing') && state.ready_at ? `<div><b>Готов через:</b> ${Math.max(0, Math.floor((state.ready_at - Date.now() / 1000) / 60))} мин</div>` : ''}
-                </div>
-            `;
-
-            if (stage === 'hungry') {
-                html += `<button onclick="feedAnimal(${id})" style="width:100%;padding:12px;background:#4CAF50;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">🍖 Покормить</button>`;
-            } else if (stage === 'ready') {
-                html += `<button onclick="collectAnimalProduct(${id})" style="width:100%;padding:12px;background:#FF9800;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">🥛 Собрать продукцию</button>`;
-            } else {
-                html += `<button disabled style="width:100%;padding:12px;background:#ccc;color:#666;border:none;border-radius:8px;font-weight:bold;">⏳ Ожидание...</button>`;
-            }
-
-            html += `</div>`;
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal').classList.add('active');
-        }
-
-        async function feedAnimal(id) {
-            const res = await api('/api/feed_animal', { method: 'POST', body: JSON.stringify({ id }) });
-            if (res.success) {
-                showToast('Животное покормлено!', 'success');
-                closeModal();
-                loadAnimals();
-            } else {
-                showToast(res.error || 'Ошибка кормления', 'error');
-            }
-        }
-
-        async function collectAnimalProduct(id) {
-            const res = await api('/api/collect_animal', { method: 'POST', body: JSON.stringify({ id }) });
-            if (res.success) {
-                showToast(`Собрано: ${res.product} x${res.count}`, 'success');
-                closeModal();
-                loadInventory();
-                loadAnimals();
-            } else {
-                showToast(res.error || 'Ошибка сбора', 'error');
-            }
-        }
-
-        async function buyAnimal(code) {
-            const res = await api('/api/buy_animal', { method: 'POST', body: JSON.stringify({ code }) });
-            if (res.success) {
-                showToast('Животное куплено!', 'success');
-                closeModal();
-                loadInventory();
-                loadAnimals();
-            } else {
-                showToast(res.error || 'Ошибка покупки', 'error');
-            }
-        }
-
-        window.feedAnimal = feedAnimal;
-        window.collectAnimalProduct = collectAnimalProduct;
-        window.buyAnimal = buyAnimal;
-
-        async function showFactoryModal(code, cfg) {
-            if (wasDragging) return;
-            document.getElementById('modal-title').textContent = text(cfg.name);
-            document.getElementById('modal-footer').style.display = 'none';
-
-            // ALWAYS fetch fresh state from API to avoid stale data
-            const factoryStates = await api('/api/factories');
-            const factoryObj = Array.isArray(factoryStates)
-                ? factoryStates.find(f => f.type_code === `factory_${code}`)
-                : null;
-            const state = factoryObj?.calculated_state || { stage: 'idle' };
-            const params = {};
-            (factoryObj?.params || []).forEach(p => params[p.key] = p.value);
-
-            console.log(`[FACTORY] Modal for ${code}: state=${JSON.stringify(state)}, params=${JSON.stringify(params)}`);
-
-            const readyAt = parseInt(state.ready_at || params.ready_at || "0");
-            const isProcessing = state.stage === 'processing';
-            const isReady = state.stage === 'ready';
-
-            if (isReady) {
-                const recipe = cfg.recipes?.find(r => r.code === state.recipe_code);
-                const product = recipe?.products?.[0];
-                const productIcon = product?.code?.includes('juice') ? '🧃' : product?.code?.includes('chips') ? '🍟' : '📦';
-
-                let html = `<div style="text-align:center; padding:20px;">
-                    <div style="font-size:80px;margin-bottom:15px;">${productIcon}</div>
-                    <p style="color:#5D4037;margin-bottom:15px;"><b>${text(recipe?.name)}</b> готов!</p>
-                    <button onclick="collectProduction('${code}')" style="width:100%;padding:12px;background:#4CAF50;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">📦 Собрать продукцию</button>
-                </div>`;
-                document.getElementById('modal-body').innerHTML = html;
-                document.getElementById('modal').classList.add('active');
-                return;
-            }
-
-            if (isProcessing) {
-                const recipe = cfg.recipes?.find(r => r.code === state.recipe_code);
-                const totalTime = recipe?.time || 300;
-                const elapsed = totalTime - (readyAt - Date.now() / 1000);
-                const progress = Math.min(100, (elapsed / totalTime) * 100);
-
-                let html = `<div style="text-align:center; padding:20px;">
-                    <div style="font-size:80px;margin-bottom:15px;animation: pulse 2s infinite;">🏭</div>
-                    <p style="color:#5D4037;margin-bottom:15px;">Производство: <b>${text(recipe?.name)}</b></p>
-                    <div style="background:#ddd;border-radius:10px;height:20px;margin-bottom:10px;overflow:hidden;">
-                        <div style="background:linear-gradient(90deg, #FF9800, #F57C00);height:100%;width:${progress}%;transition:width 1s linear;"></div>
-                    </div>
-                    <p style="font-size:14px;color:#666;">Осталось: ${Math.max(0, Math.ceil(readyAt - Date.now() / 1000))} сек</p>
-                </div>`;
-                document.getElementById('modal-body').innerHTML = html;
-                document.getElementById('modal').classList.add('active');
-
-                // Refresh modal every second
-                setTimeout(() => {
-                    if (document.getElementById('modal').classList.contains('active')) {
-                        showFactoryModal(code, cfg);
-                    }
-                }, 1000);
-                return;
-            }
-
-            const crops = await api('/api/configs/crops');
-            const animals = await api('/api/configs/animals');
-            const factories = await api('/api/configs/factories');
-
-            const itemNames = {};
-            for (const [cropCode, cropCfg] of Object.entries(crops || {})) {
-                itemNames[cropCode] = cropCfg.name;
-            }
-            for (const [animalCode, animalCfg] of Object.entries(animals || {})) {
-                for (const product of animalCfg.products || []) {
-                    if (product.code && product.name) {
-                        itemNames[product.code] = product.name;
-                    }
-                }
-            }
-            for (const [factoryCode, factoryCfg] of Object.entries(factories || {})) {
-                const fullCfg = await api(`/api/configs/factories/${factoryCode}`);
-                for (const product of fullCfg?.products || []) {
-                    if (product.code && product.name) {
-                        itemNames[product.code] = product.name;
-                    }
-                }
-            }
-
-            let html = `<p style="margin-bottom:15px;color:#5D4037">${text(cfg.description)}</p>`;
-            html += '<div class="shop-grid">';
-
-            for (const recipe of cfg.recipes || []) {
-                let ingredientsHtml = '';
-                let canProduce = true;
-
-                for (const input of recipe.inputs || []) {
-                    const itemKey = `item_${input.item}`;
-                    const have = inventory[itemKey] || 0;
-                    const need = input.count;
-                    const enough = have >= need;
-                    if (!enough) canProduce = false;
-
-                    const itemName = text(itemNames[input.item]) || input.item;
-                    const color = enough ? '#4CAF50' : '#F44336';
-                    ingredientsHtml += `<div style="font-size:11px;color:${color}">${itemName}: ${have}/${need}</div>`;
-                }
-
-                const btnStyle = canProduce
-                    ? 'background:#4CAF50;color:white;cursor:pointer'
-                    : 'background:#ccc;color:#666;cursor:not-allowed';
-                const onclick = canProduce
-                    ? `startProduction('${code}','${recipe.code}')`
-                    : '';
-
-                const product = recipe.products?.[0];
-                const productIcon = product?.code?.includes('juice') ? '🧃' : product?.code?.includes('chips') ? '🍟' : '📦';
-
-                html += `<div class="shop-item" ${onclick ? `onclick="${onclick}"` : ''}>
-                    <div class="shop-item-icon">${productIcon}</div>
-                    <div class="shop-item-name">${text(recipe.name)}</div>
-                    <div style="font-size:10px;color:#888">⏱ ${Math.floor(recipe.time / 60)}мин</div>
-                    <div style="margin-top:5px;border-top:1px solid #eee;padding-top:5px">
-                        ${ingredientsHtml}
-                    </div>
-                    <div style="margin-top:5px;padding:3px 6px;border-radius:4px;${btnStyle}">
-                        ${canProduce ? '▶ Произвести' : '✗ Нет ингредиентов'}
-                    </div>
-                </div>`;
-            }
-            html += '</div>';
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal').classList.add('active');
-        }
-
-        async function startProduction(factoryCode, recipeCode) {
-            console.log(`[FACTORY] Starting production: factory=${factoryCode}, recipe=${recipeCode}`);
-            const res = await api('/api/start_production', {
-                method: 'POST',
-                body: JSON.stringify({ factoryCode, recipeCode })
-            });
-
-            console.log(`[FACTORY] Start production response:`, res);
-
-            if (res.success) {
-                showToast('Производство запущено!', 'success');
-                closeModal();
-                await loadInventory();
-                await loadMapObjects();
-            } else {
-                showToast(res.error || 'Ошибка запуска', 'error');
-            }
-        }
-
-        async function collectProduction(factoryCode) {
-            const res = await api('/api/collect_production', {
-                method: 'POST',
-                body: JSON.stringify({ factoryCode })
-            });
-
-            if (res.success) {
-                showToast('Продукция собрана!', 'success');
-                closeModal();
-                loadInventory();
-                loadMapObjects();
-            } else {
-                showToast(res.error || 'Ошибка сбора', 'error');
-            }
-        }
-
-        window.startProduction = startProduction;
-        window.collectProduction = collectProduction;
-
-        async function onPlotClick(id) {
-            if (wasDragging) return;
-            const plot = plots[id];
-            console.log('[PLOT] Click on plot', id, 'state:', plot?.state, 'currentTool:', currentTool);
-
-            // Ready crop - always harvest on click
-            if (plot.state === 'ready') {
-                await harvestCrop(id);
-                return;
-            }
-
-            // Withered crop - clear it
-            if (plot.state === 'withered') {
-                await clearWitheredCrop(id);
-                return;
-            }
-
-            // Growing crop - show stages modal
-            if (plot.state === 'planted' && plot.config) {
-                showCropGrowthModal(id, plot);
-                return;
-            }
-
-            // Empty plot - plant selected seed or show selector
-            if (plot.state === 'empty') {
-                if (selectedSeed && (inventory[`seed_${selectedSeed}`] || 0) > 0) {
-                    // Plant selected seed directly
-                    await plantCrop(id, selectedSeed);
-                } else {
-                    // No seed selected or out of seeds - show selector
-                    await showCropSelector(id);
-                }
-            }
-
-            // Blocked plot - buy it
-            if (plot.state === 'blocked') {
-                await showBuyPlotModal(id);
-            }
-        }
-
-        async function showBuyPlotModal(id) {
-            const plotCfg = CONFIGS.plots?.plot;
-            const plotsData = await api('/api/plots');
-            const currentPlots = plotsData?.plots_count || 6;
-            const basePlots = plotsData?.base_plots || 6;
-            const plotPrice = plotCfg?.plot_price || 100;
-            const priceMultiplier = plotCfg?.price_multiplier || 1.5;
-
-            const extraPlots = currentPlots - basePlots;
-            const price = Math.floor(plotPrice * Math.pow(priceMultiplier, extraPlots));
-
-            const submodal = document.getElementById('submodal');
-            const title = document.getElementById('submodal-title');
-            const text = document.getElementById('submodal-text');
-            const okBtn = document.getElementById('submodal-ok');
-
-            title.textContent = 'Купить грядку';
-            text.textContent = `Вы хотите купить новую грядку за ${price} 🪙?`;
-
-            okBtn.onclick = async () => {
-                closeSubmodal();
-                await buyPlot();
-            };
-
-            submodal.classList.add('active');
-        }
-
-        async function buyPlot() {
-            const response = await fetch(`${API_URL}/api/buy_plot`, {
-                method: 'POST',
-                headers: { 'Authorization': tg?.initData || '' }
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                showToast('Грядка куплена!', 'success');
-                // Refresh the whole game state or just the plots
-                location.reload();
-            } else {
-                showToast(result.error || 'Ошибка при покупке', 'error');
-            }
-        }
-
-        function closeSubmodal() {
-            document.getElementById('submodal').classList.remove('active');
-        }
-
-        // Show modal with crop growth stages information
-        function showCropGrowthModal(plotId, plot) {
-            const cropCfg = plot.config;
-            const stageTimes = cropCfg.stage_times || [];
-            const elapsed = (Date.now() - plot.plantedAt) / 1000;
-            const totalGrowTime = stageTimes.reduce((a, b) => a + b, 0);
-            const witherTime = cropCfg.wither_time || 0;
-
-            // Get dynamic stages from config
-            const allStageKeys = Object.keys(cropCfg.stages || {});
-            const intermediateStages = allStageKeys.filter(s => s !== 'withered' && s !== 'seed' && s !== 'ripe');
-            const stages = allStageKeys.includes('seed') ? ['seed', ...intermediateStages, 'ripe'] : [...intermediateStages, 'ripe'];
-
-            // Calculate current stage
-            let timeSum = 0;
-            let currentStageIndex = 0;
-            for (let i = 0; i < stageTimes.length; i++) {
-                timeSum += stageTimes[i];
-                if (elapsed >= timeSum && i + 1 < stages.length) {
-                    currentStageIndex = i + 1;
-                }
-            }
-            if (elapsed >= totalGrowTime) {
-                currentStageIndex = stages.length - 1;
-            }
-
-            document.getElementById('modal-title').textContent = text(cropCfg.name);
-            document.getElementById('modal-footer').style.display = 'none';
-
-            let html = `<div style="padding: 15px;">`;
-
-            // Current crop image
-            const currentStage = stages[currentStageIndex];
-            const currentImg = cropCfg.stages?.[currentStage]?.image;
-            if (currentImg) {
-                html += `<div style="text-align:center;margin-bottom:15px;">
-                    <img src="${currentImg}" style="width:120px;height:auto;">
-                </div>`;
-            }
-
-            // Description
-            html += `<p style="color:#5D4037;margin-bottom:15px;text-align:center;">${text(cropCfg.description)}</p>`;
-
-            // Progress bar
-            const progress = Math.min(100, (elapsed / totalGrowTime) * 100);
-            html += `<div style="background:#ddd;border-radius:10px;height:20px;margin-bottom:20px;overflow:hidden;">
-                <div style="background:linear-gradient(90deg, #4CAF50, #8BC34A);height:100%;width:${progress}%;transition:width 0.3s;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">
-                    ${Math.floor(progress)}%
-                </div>
-            </div>`;
-
-            // Stages timeline
-            html += `<div style="font-weight:bold;margin-bottom:10px;color:#333;">📊 Стадии роста:</div>`;
-            html += `<div style="display:flex;flex-direction:column;gap:8px;">`;
-
-            let accumulatedTime = 0;
-            for (let i = 0; i < stages.length; i++) {
-                const stage = stages[i];
-                const stageTime = stageTimes[i] || 0;
-                const stageInfo = cropCfg.stages?.[stage];
-                const stageName = stageInfo?.messages ? text(stageInfo.messages) : stage;
-                const stageImg = stageInfo?.image;
-
-                const isCurrent = i === currentStageIndex;
-                const isPast = i < currentStageIndex;
-                const isFuture = i > currentStageIndex;
-
-                // Calculate time info
-                let timeInfo = '';
-                if (i === 0) {
-                    timeInfo = '0:00';
-                } else if (i < stageTimes.length) {
-                    accumulatedTime += stageTimes[i - 1] || 0;
-                    timeInfo = formatTime(stageTime);
-                } else {
-                    // Ripe stage
-                    timeInfo = '✓ Урожай';
-                }
-
-                // Time remaining for current stage
-                let timeRemaining = '';
-                if (isCurrent && i < stageTimes.length) {
-                    let prevTime = 0;
-                    for (let j = 0; j < i; j++) prevTime += stageTimes[j] || 0;
-                    const stageEnd = prevTime + (stageTimes[i] || 0);
-                    const remaining = stageEnd - elapsed;
-                    if (remaining > 0) {
-                        timeRemaining = `<span style="color:#FF9800;font-size:11px;margin-left:5px;">⏱ ${formatTime(remaining)}</span>`;
-                    }
-                }
-
-                const bgColor = isCurrent ? 'rgba(76, 175, 80, 0.2)' : (isPast ? 'rgba(200, 200, 200, 0.3)' : 'rgba(255, 255, 255, 0.5)');
-                const borderColor = isCurrent ? '#4CAF50' : (isPast ? '#9E9E9E' : '#E0E0E0');
-                const textColor = isPast ? '#9E9E9E' : '#333';
-                const icon = isPast ? '✅' : (isCurrent ? '🌱' : '⏳');
-
-                html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${bgColor};border:2px solid ${borderColor};border-radius:8px;">
-                    <span style="font-size:16px;">${icon}</span>
-                    ${stageImg ? `<img src="${stageImg}" style="width:35px;height:35px;object-fit:contain;border-radius:4px;">` : ''}
-                    <div style="flex:1;">
-                        <div style="font-weight:bold;color:${textColor};">${stageName}${timeRemaining}</div>
-                        <div style="font-size:11px;color:#888;">${i === stages.length - 1 ? 'Готово к сбору' : `Длительность: ${timeInfo}`}</div>
-                    </div>
-                    <span style="font-size:12px;color:#666;">${i + 1}/${stages.length}</span>
-                </div>`;
-            }
-            html += `</div>`;
-
-            // Wither warning
-            if (witherTime > 0) {
-                html += `<div style="margin-top:15px;padding:10px;background:rgba(255, 152, 0, 0.1);border:1px solid #FF9800;border-radius:8px;font-size:12px;color:#E65100;">
-                    ⚠️ Внимание: урожай увянет через <b>${formatTime(witherTime)}</b> после созревания!
-                </div>`;
-            } else {
-                html += `<div style="margin-top:15px;padding:10px;background:rgba(76, 175, 80, 0.1);border:1px solid #4CAF50;border-radius:8px;font-size:12px;color:#2E7D32;">
-                    ✅ Это растение не увядает — можно собрать в любое время!
-                </div>`;
-            }
-
-            // Stats
-            html += `<div style="margin-top:15px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">💰 Продажа: ${cropCfg.products?.[0]?.sell_silver || 0} 🪙</div>
-                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">⭐ Опыт: ${cropCfg.exp || 0}</div>
-                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">📦 Урожай: ${cropCfg.products?.[0]?.yield?.join('-') || '?'} шт</div>
-                <div style="padding:8px;background:rgba(255,255,255,0.5);border-radius:6px;">⏰ Общее время: ${formatTime(totalGrowTime)}</div>
-            </div>`;
-
-            html += `</div>`;
-
-            document.getElementById('modal-body').innerHTML = html;
-            document.getElementById('modal').classList.add('active');
-        }
-
-
-        // Clear a withered crop from the plot
-        async function clearWitheredCrop(plotId) {
-            const plot = plots[plotId];
-            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            if (!plotEl) return;
-
-            const emptyPlotImg = CONFIGS.plots?.plot?.stages?.empty?.image;
-
-            // Save previous state for rollback
-            const prevPlotState = JSON.parse(JSON.stringify(plot));
-            const prevHtml = plotEl.innerHTML;
-            const prevFilter = plotEl.style.filter;
-
-            // Show clearing animation (optimistic)
-            plotEl.innerHTML = `<div class="harvest-popup" style="background: linear-gradient(135deg, rgba(139, 69, 19, 0.95), rgba(101, 67, 33, 0.95));">🗑️ Убрано</div>`;
-            plotEl.style.filter = '';
-
-            // Try to delete from server (if objectId exists)
-            let success = true;
-            let errorMessage = '';
-
-            if (plot?.objectId) {
-                try {
-                    const result = await api(`/api/harvest?id=${plot.objectId}`);
-
-                    // Check for errors (Withered is OK - expected response)
-                    if (result.error && result.error !== 'Withered') {
-                        success = false;
-                        errorMessage = result.error;
-                    }
-                } catch (e) {
-                    console.log('[CLEAR] Error deleting withered crop:', e);
-                    success = false;
-                    errorMessage = e.message || 'Ошибка сети';
-                }
-            }
-
-            if (success) {
-                // Clear plot visually
-                setTimeout(() => {
-                    plotEl.innerHTML = '';
-                    plotEl.classList.remove('planted');
-                    plotEl.classList.add('empty');
-                    plotEl.style.filter = '';
-                    if (emptyPlotImg) {
-                        plotEl.style.backgroundImage = `url('${emptyPlotImg}')`;
-                    }
-                    plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null };
-                }, 800);
-
-                showToast('Увядший урожай убран', 'success');
-            } else {
-                // Rollback on error
-                plotEl.classList.add('error');
-                setTimeout(() => {
-                    plotEl.innerHTML = prevHtml;
-                    plotEl.style.filter = prevFilter;
-                    plotEl.classList.remove('error');
-                    plots[plotId] = prevPlotState;
-                }, 500);
-
-                showToast(`Ошибка: ${errorMessage}`, 'error');
-            }
-        }
-
-
-
-        // Show crop selector modal - can be used both for selecting seed (no plotId) or planting directly (with plotId)
-        async function showCropSelector(plotId = null) {
-            const crops = await api('/api/configs/crops');
-            const plotCfg = await api('/api/configs/plots/plot');
-            const isSelectMode = plotId === null;
-            document.getElementById('modal-title').textContent = isSelectMode ? 'Выберите культуру' : (text(plotCfg?.ui?.labels?.select_crop) || 'Выберите семена');
-            document.getElementById('modal-footer').style.display = 'none';
-
-            // Filter only crops that user has seeds for
-            const availableCrops = Object.entries(crops || {}).filter(([code]) => {
-                const seedCount = inventory[`seed_${code}`] || 0;
-                return seedCount > 0;
-            });
-
-            if (availableCrops.length === 0) {
-                document.getElementById('modal-body').innerHTML = `
-                    <p style="color:#888;text-align:center;padding:30px">
-                        У вас нет семян!<br><br>
-                        <button onclick="closeModal(); showModal('shop')" style="padding:10px 20px;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
-                            Перейти в магазин
-                        </button>
-                    </p>
-                `;
-            } else {
-                document.getElementById('modal-body').innerHTML = `
-                    <div class="shop-grid">
-                        ${availableCrops.map(([code, c]) => {
-                    const seedImg = c.stages?.seed?.image;
-                    const iconHtml = seedImg
-                        ? `<img src="${seedImg}">`
-                        : '🌱';
-                    const seedCount = inventory[`seed_${code}`] || 0;
-                    const isSelected = selectedSeed === code;
-                    const style = isSelected ? 'border: 2px solid #4CAF50; background: rgba(76,175,80,0.2);' : '';
-                    // If plotId is provided, plant directly; otherwise, select the seed
-                    const clickAction = isSelectMode ? `selectCropForPlanting('${code}')` : `plantCrop(${plotId}, '${code}')`;
-                    return `
-                                <div class="shop-item" style="${style}" onclick="${clickAction}">
-                                    <span class="shop-item-qty">${seedCount}</span>
-                                    <div class="shop-item-icon">${iconHtml}</div>
-                                    <div class="shop-item-name">${text(c.name)}</div>
-                                    <div class="shop-item-price">${seedCount} семян</div>
-                                </div>
-                            `;
-                }).join('')}
-                    </div>
-                `;
-            }
-            document.getElementById('modal').classList.add('active');
-        }
-
-        // Select a crop for quick planting (updates the toolbar and selectedSeed)
-        function selectCropForPlanting(cropCode) {
-            selectedSeed = cropCode;
-            const crops = CONFIGS?.crops || {};
-            const crop = crops[cropCode];
-
-            // Update toolbar button
-            const seedIcon = document.getElementById('selected-seed-icon');
-            const seedName = document.getElementById('selected-seed-name');
-            if (crop) {
-                const img = crop.stages?.seed?.image;
-                seedIcon.innerHTML = img ? `<img src="${img}" style="width:28px;height:28px">` : '🌱';
-                seedName.textContent = text(crop.name);
-            }
-
-            closeModal();
-            showToast(`Выбрано: ${text(crop?.name)}`, 'success');
-        }
-
-        async function plantCrop(plotId, cropCode) {
-            closeModal();
-
-            // Call API to plant crop (handles seeds, checkpoints, etc.)
-            const result = await api(`/api/plant?plot_id=${plotId}&crop=${cropCode}`);
-
-            if (!result.success) {
-                showToast(result.error || 'Ошибка посадки', 'error');
-                return;
-            }
-
-            // Reload inventory
-            await loadInventory();
-
-            // Update UI
-            const cropCfg = await api(`/api/configs/crops/${cropCode}`);
-            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            const plantedAt = Date.now();
-
-            // Get yield from server response or estimate from config
-            const yieldAmount = result.yield || cropCfg?.products?.[0]?.yield?.[0] || 2;
-
-            plots[plotId] = {
-                state: 'planted',
-                crop: cropCode,
-                stage: 'seed',
-                config: cropCfg,
-                objectId: result.objectId,
-                plantedAt: plantedAt,  // For countdown timer
-                yieldAmount: yieldAmount  // For optimistic harvest
-            };
-            plotEl.classList.remove('empty');
-            plotEl.classList.add('planted');
-
-            const stageNames = { seed: '1/4', sprout: '2/4', growing: '3/4', ripe: '✓' };
-
-            // Show initial seed stage image
-            const img = cropCfg?.stages?.seed?.image;
-            const html = img
-                ? `<img src="${img}" class="crop-img">`
-                : `<div class="crop-img" style="font-size:30px;text-align:center">🌱</div>`;
-            plotEl.innerHTML = `${html}<span class="stage-indicator">${stageNames['seed']}</span>`;
-
-            // Countdown timer will handle stage transitions automatically
-            updatePlotTimer(plotId);
-        }
-
-        async function harvestCrop(plotId) {
-            const plot = plots[plotId];
-            if (!plot?.objectId) {
-                console.log('[HARVEST] No objectId, cannot harvest');
-                showToast('Ошибка: нет данных о посадке', 'error');
-                return;
-            }
-
-            const plotEl = document.querySelector(`.plot[data-id="${plotId}"]`);
-            if (!plotEl) return;
-
-            // Get plot config for empty image (cached or fetch)
-            const emptyPlotImg = CONFIGS.plots?.plot?.stages?.empty?.image;
-
-            // 1. SAVE STATE for potential rollback
-            gameFSM.saveState(plots, inventory);
-            const prevPlotState = JSON.parse(JSON.stringify(plot));
-
-            // 2. PREDICT harvest amount (preloaded from DB or estimate from config)
-            const yieldAmount = plot.yieldAmount || plot.config?.products?.[0]?.yield?.[0] || 2;
-            const cropCode = plot.crop;
-            const itemKey = `item_${cropCode}`;
-            const cropIcon = plot.config?.stages?.ripe?.image ? '🍎' : '📦';
-
-            // 3. OPTIMISTIC UPDATE - show immediately
-            inventory[itemKey] = (inventory[itemKey] || 0) + yieldAmount;
-            updateResourcesUI();
-
-            // Show harvest animation with popup
-            plotEl.classList.add('harvesting');
-            plotEl.innerHTML = `<div class="harvest-popup">+${yieldAmount} ${cropIcon}</div>`;
-
-            // Mark plot as empty optimistically
-            plots[plotId] = { state: 'empty', crop: null, stage: 0, objectId: null, yieldAmount: null };
-
-            // Clear plot visually after animation
-            setTimeout(() => {
-                plotEl.innerHTML = '';
-                plotEl.classList.remove('planted', 'harvesting');
-                plotEl.classList.add('empty');
-                if (emptyPlotImg) {
-                    plotEl.style.backgroundImage = `url('${emptyPlotImg}')`;
-                }
-            }, 1000);
-
-            // 4. QUEUE ACTION for offline sync
-            const actionId = gameFSM.queueAction({
-                type: 'harvest',
-                objectId: plot.objectId,
-                plotId: plotId,
-                expectedYield: yieldAmount,
-                cropCode: cropCode
-            });
-
-            // 5. BACKGROUND REQUEST
-            try {
-                const result = await api(`/api/harvest?id=${plot.objectId}`);
-
-                // Handle server errors (except withered which has special handling)
-                if (result.error && result.error !== 'Withered') {
-                    throw new Error(result.error);
-                }
-
-                // 6. SUCCESS - Complete the action
-                gameFSM.completeAction(actionId);
-
-                // Get actual yield from server
-                const actualYield = result.harvested ?? yieldAmount;
-
-                // Handle withered crops - already visually cleared, just adjust inventory
-                if (result.error === 'Withered') {
-                    console.log(`[HARVEST] Crop withered, adjusting inventory`);
-                    // Remove the optimistically added items (crop is worthless)
-                    inventory[itemKey] = Math.max(0, (inventory[itemKey] || 0) - yieldAmount);
-                    updateResourcesUI();
-                    showToast('Урожай увял! 🥀', 'warning');
-                    return;
-                }
-
-                // Adjust inventory if server value differs from prediction
-                if (actualYield !== yieldAmount) {
-                    const diff = actualYield - yieldAmount;
-                    inventory[itemKey] = Math.max(0, (inventory[itemKey] || 0) + diff);
-                    updateResourcesUI();
-                    console.log(`[HARVEST] Adjusted yield: predicted ${yieldAmount}, actual ${actualYield}`);
-                }
-
-                console.log(`[HARVEST] Success: ${cropCode} x${actualYield}`);
-
-            } catch (error) {
-                console.error('[HARVEST] Error, rolling back:', error);
-
-                // Check if offline - keep action queued for later sync
-                if (!navigator.onLine) {
-                    showToast('Оффлайн: урожай будет синхронизирован', 'warning');
-                    // Keep action in queue, don't rollback visually
-                    return;
-                }
-
-                // 7. ROLLBACK on error
-                gameFSM.completeAction(actionId); // Remove failed action from queue
-                const prevState = gameFSM.rollback();
-
-                if (prevState) {
-                    // Restore inventory
-                    Object.assign(inventory, prevState.inventory);
-                    updateResourcesUI();
-
-                    // Restore plot state
-                    plots[plotId] = prevPlotState;
-
-                    // Restore visual
-                    plotEl.classList.add('error');
-                    setTimeout(() => {
-                        restorePlotVisual(plotId, prevPlotState);
-                        plotEl.classList.remove('error');
-                    }, 500);
-                }
-
-                showToast(`Ошибка сбора: ${error.message}`, 'error');
-            }
-        }
-
-
-        async function showModal(type) {
-            const cfg = await api(`/api/configs/ui/${type}`);
-            document.getElementById('modal-title').textContent = text(cfg?.name) || type;
-            document.getElementById('modal-footer').style.display = 'none';
-
-            if (type === 'shop') {
-                // Shop: buy seeds and animals
-                const crops = await api('/api/configs/crops');
-                const animals = await api('/api/configs/animals');
-
-                let html = '<div style="padding:10px;"><h3 style="margin-bottom:10px;color:#5D4037;">🌱 Семена</h3></div>';
-                html += '<div class="shop-grid">';
-                for (const [code, c] of Object.entries(crops || {})) {
-                    const seedImg = c.stages?.seed?.image;
-                    const iconHtml = seedImg ? `<img src="${seedImg}">` : '🌱';
-                    const owned = inventory[`seed_${code}`] || 0;
-                    const isFree = c.buy_silver === 0;
-                    html += `<div class="shop-item">
-                        ${owned > 0 ? `<span class="shop-item-qty">${owned}</span>` : ''}
-                        <div class="shop-item-icon">${iconHtml}</div>
-                        <div class="shop-item-name">${text(c.name)}</div>
-                        <div class="shop-item-price">${isFree ? 'Бесплатно' : c.buy_silver + ' 🪙'}</div>
-                        <div class="qty-selector">
-                            <button onclick="changeQty('${code}', -1)">−</button>
-                            <input type="number" id="qty_${code}" value="1" min="1" max="99" readonly>
-                            <button onclick="changeQty('${code}', 1)">+</button>
-                        </div>
-                        <button onclick="buySeeds('${code}', ${c.buy_silver})" style="margin-top:6px;width:100%;padding:6px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer">
-                            Купить
-                        </button>
-                    </div>`;
-                }
-                html += '</div>';
-
-                html += '<div style="padding:10px;margin-top:20px;"><h3 style="margin-bottom:10px;color:#5D4037;">🐄 Животные</h3></div>';
-                html += '<div class="shop-grid">';
-                for (const [code, c] of Object.entries(animals || {})) {
-                    if (code === 'dog') continue; // Dog is special or handled elsewhere
-                    const stageImg = c.stages?.fed?.image || c.icon;
-                    const iconHtml = stageImg.startsWith('fsm/') || stageImg.startsWith('/')
-                        ? `<img src="${stageImg}">`
-                        : `<span style="font-size:40px">${stageImg}</span>`;
-
-                    html += `<div class="shop-item">
-                        <div class="shop-item-icon">${iconHtml}</div>
-                        <div class="shop-item-name">${text(c.name)}</div>
-                        <div class="shop-item-price">${c.buy_silver} 🪙</div>
-                        <button onclick="buyAnimal('${code}')" style="margin-top:6px;width:100%;padding:6px;background:#FF9800;color:white;border:none;border-radius:4px;cursor:pointer">
-                            Купить
-                        </button>
-                    </div>`;
-                }
-                html += '</div>';
-                document.getElementById('modal-body').innerHTML = html;
-
-            } else if (type === 'warehouse') {
-                // Warehouse: show items with total and sell all
-                const crops = await api('/api/configs/crops');
-                const animals = await api('/api/configs/animals');
-                const factories = await api('/api/configs/factories');
-
-                // Build item name lookup from ALL sources
-                const itemNames = {};
-                const itemConfigs = {};
-
-                for (const [c, cfg] of Object.entries(crops || {})) {
-                    itemNames[c] = cfg.name;
-                    itemConfigs[c] = cfg;
-                }
-                for (const [a, cfg] of Object.entries(animals || {})) {
-                    for (const p of cfg.products || []) {
-                        itemNames[p.code] = p.name;
-                        itemConfigs[p.code] = p;
-                    }
-                }
-                for (const [f, cfg] of Object.entries(factories || {})) {
-                    const fullCfg = await api(`/api/configs/factories/${f}`);
-                    for (const p of fullCfg?.products || []) {
-                        itemNames[p.code] = p.name;
-                        itemConfigs[p.code] = p;
-                    }
-                }
-
-                const items = Object.entries(inventory).filter(([k, v]) => k.startsWith('item_') && v > 0);
-
-                if (items.length === 0) {
-                    document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center;padding:40px">Склад пуст</p>';
-                } else {
-                    let html = '<div class="shop-grid">';
-                    let totalValue = 0;
-
-                    for (const [key, qty] of items) {
-                        const code = key.replace('item_', '');
-                        const itemCfg = itemConfigs[code];
-                        const ripeImg = itemCfg?.stages?.ripe?.image || itemCfg?.image;
-                        const iconHtml = ripeImg ? `<img src="${ripeImg}">` : '📦';
-                        const sellPrice = itemCfg?.sell_silver || itemCfg?.products?.[0]?.sell_silver || 10;
-                        totalValue += sellPrice * qty;
-
-                        html += `<div class="shop-item">
-                            <span class="shop-item-qty">${qty}</span>
-                            <div class="shop-item-icon">${iconHtml}</div>
-                            <div class="shop-item-name">${text(itemNames[code]) || code}</div>
-                            <div class="shop-item-price">${sellPrice} 🪙 / шт</div>
-                            <div class="qty-selector">
-                                <button onclick="changeSellQty('${code}', -1, ${qty})">−</button>
-                                <input type="number" id="sell_${code}" value="${qty}" min="1" max="${qty}" readonly>
-                                <button onclick="changeSellQty('${code}', 1, ${qty})">+</button>
-                            </div>
-                            <button onclick="sellItems('${code}', ${sellPrice})" style="margin-top:6px;width:100%;padding:6px;background:#FF9800;color:white;border:none;border-radius:4px;cursor:pointer">
-                                Продать
-                            </button>
-                        </div>`;
-                    }
-                    html += '</div>';
-                    document.getElementById('modal-body').innerHTML = html;
-
-                    // Show footer with total and sell all button
-                    document.getElementById('modal-footer').style.display = 'flex';
-                    document.getElementById('modal-total').textContent = totalValue.toLocaleString();
-                    document.getElementById('modal-action-btn').textContent = 'Продать всё';
-                    document.getElementById('modal-action-btn').onclick = () => confirmSellAll(totalValue);
-                }
-
-            } else if (type === 'friends') {
-                document.getElementById('modal-body').innerHTML = '<p style="color:#888;text-align:center;padding:40px">Друзья скоро появятся!</p>';
-
-            } else if (type === 'settings') {
-                document.getElementById('modal-body').innerHTML = `
-                    <div style="padding:20px">
-                        <p><b>Язык:</b> Русский</p>
-                        <p><b>Звуки:</b> Вкл</p>
-                    </div>
-                `;
-            } else {
-                document.getElementById('modal-body').innerHTML = `<p style="padding:20px">${text(cfg?.description) || ''}</p>`;
-            }
-            document.getElementById('modal').classList.add('active');
-        }
-
-        // Quantity helpers
-        function changeQty(code, delta) {
-            const input = document.getElementById(`qty_${code}`);
-            const newVal = Math.max(1, Math.min(99, parseInt(input.value) + delta));
-            input.value = newVal;
-        }
-
-        function changeSellQty(code, delta, max) {
-            const input = document.getElementById(`sell_${code}`);
-            const newVal = Math.max(1, Math.min(max, parseInt(input.value) + delta));
-            input.value = newVal;
-        }
-
-        // Buy seeds with quantity
-        async function buySeeds(cropCode, pricePerUnit) {
-            const qty = parseInt(document.getElementById(`qty_${cropCode}`)?.value || 1);
-            const totalPrice = pricePerUnit * qty;
-
-            if (totalPrice > 0 && (inventory.silver || 0) < totalPrice) {
-                showToast('Недостаточно монет!', 'error');
-                return;
-            }
-
-            try {
-                if (totalPrice > 0) {
-                    await modifyStat('silver', -totalPrice);
-                }
-                await modifyStat(`seed_${cropCode}`, qty);
-                updateResourcesUI();
-                showModal('shop'); // Refresh
-                showToast('Семена куплены!', 'success');
-            } catch (e) {
-                console.error('[SHOP] Buy error:', e);
-                showToast(e.message || 'Ошибка при покупке', 'error');
-                await loadInventory(); // Sync with server
-            }
-        }
-
-        // Sell items with quantity
-        async function sellItems(itemCode, pricePerUnit) {
-            const qty = parseInt(document.getElementById(`sell_${itemCode}`)?.value || 1);
-            const key = `item_${itemCode}`;
-
-            if ((inventory[key] || 0) < qty) {
-                showToast('Недостаточно товара!', 'error');
-                return;
-            }
-
-            try {
-                await modifyStat(key, -qty);
-                await modifyStat('silver', pricePerUnit * qty);
-                updateResourcesUI();
-                showModal('warehouse'); // Refresh
-                showToast('Товары проданы!', 'success');
-            } catch (e) {
-                console.error('[WAREHOUSE] Sell error:', e);
-                showToast(e.message || 'Ошибка при продаже', 'error');
-                await loadInventory();
-            }
-        }
-
-        // Confirm sell all
-        function confirmSellAll(totalValue) {
-            document.getElementById('submodal-title').textContent = 'Продать товары';
-            document.getElementById('submodal-text').textContent = `Вы уверены, что хотите продать все товары со склада за ${totalValue.toLocaleString()} 🪙?`;
-            document.getElementById('submodal-ok').onclick = async () => {
-                await sellAllItems();
-                closeSubmodal();
-            };
-            document.getElementById('submodal').classList.add('active');
-        }
-
-        async function sellAllItems() {
-            const crops = await api('/api/configs/crops');
-            const items = Object.entries(inventory).filter(([k, v]) => k.startsWith('item_') && v > 0);
-
-            for (const [key, qty] of items) {
-                const code = key.replace('item_', '');
-                const cropCfg = crops?.[code];
-                const sellPrice = cropCfg?.sell_silver || cropCfg?.products?.[0]?.sell_silver || 10;
-
-                await modifyStat(key, -qty);
-                await modifyStat('silver', sellPrice * qty);
-            }
-
-            updateResourcesUI();
-            showModal('warehouse');
-        }
-
-        function closeSubmodal() {
-            document.getElementById('submodal').classList.remove('active');
-        }
-
-        window.changeQty = changeQty;
-        window.changeSellQty = changeSellQty;
-        window.buySeeds = buySeeds;
-        window.sellItems = sellItems;
-        window.confirmSellAll = confirmSellAll;
-        window.closeSubmodal = closeSubmodal;
-
-        // Buy seed
-        async function buySeed(cropCode, price) {
-            if ((inventory.silver || 0) < price) {
-                showToast('Недостаточно монет!', 'error');
-                return;
-            }
-            try {
-                await modifyStat('silver', -price);
-                await modifyStat(`seed_${cropCode}`, 1);
-                updateResourcesUI();
-                showModal('shop'); // Refresh
-                showToast('Семена куплены!', 'success');
-            } catch (e) {
-                console.error('[SHOP] Buy error:', e);
-                showToast(e.message || 'Ошибка при покупке', 'error');
-                await loadInventory();
-            }
-        }
-
-        // Sell item from warehouse
-        async function sellItem(itemCode, qty, pricePerUnit) {
-            const key = `item_${itemCode}`;
-            if ((inventory[key] || 0) < qty) {
-                showToast('Недостаточно товара!', 'error');
-                return;
-            }
-            try {
-                await modifyStat(key, -qty);
-                await modifyStat('silver', pricePerUnit * qty);
-                updateResourcesUI();
-                showModal('warehouse'); // Refresh
-                showToast('Товары проданы!', 'success');
-            } catch (e) {
-                console.error('[WAREHOUSE] Sell error:', e);
-                showToast(e.message || 'Ошибка при продаже', 'error');
-                await loadInventory();
-            }
-        }
-
-        window.buySeed = buySeed;
-        window.sellItem = sellItem;
-
-        function closeModal() { document.getElementById('modal').classList.remove('active'); }
-
-        // Close modals on outside click
-        document.getElementById('modal').addEventListener('click', (e) => {
-            if (e.target.id === 'modal') closeModal();
-        });
-
-        document.getElementById('submodal').addEventListener('click', (e) => {
-            if (e.target.id === 'submodal') closeSubmodal();
-        });
-
+        };
+
+        const scaleGameWorld = () => {
+            const gw = document.getElementById('game-world');
+            if (!gw) return;
+            const scale = Math.min(window.innerWidth / 800, window.innerHeight / 600);
+            gw.style.transform = `scale(${scale})`;
+        };
+
+        window.closeModal = closeModal; window.closeSubmodal = closeSubmodal; window.showModal = showModal; window.executeAction = executeAction;
         init();
     </script>
 </body>

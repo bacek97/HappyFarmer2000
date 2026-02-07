@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iso Farm - Hybrid Events</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #a6d785;
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            /* Разрешаем скролл */
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            min-height: 120vh;
+            display: flex;
+            justify-content: center;
+            padding-top: 80px;
+        }
+
+        .plot-container {
+            position: relative;
+            width: 540px;
+        }
+
+        .plot {
+            position: absolute;
+            width: 90px;
+            height: 45px;
+            /* Указываем, что события должны ловиться на этом слое */
+            pointer-events: all;
+        }
+
+        .plot::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: #4caf50;
+            clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+            z-index: 1;
+            transition: background 0.2s;
+        }
+
+        .plot:hover::before {
+            filter: brightness(1.15);
+        }
+
+        .plot.harvested::before {
+            background: #6b4f2c;
+        }
+
+        .plot img {
+            position: absolute;
+            left: 50%;
+            bottom: 35%;
+            width: 60px;
+            transform: translateX(-50%);
+            z-index: 2;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .plot.harvested img {
+            opacity: 0;
+            transform: translateX(-50%) translateY(20px) scale(0);
+        }
+
+        /* Тулбар */
+        .toolbar {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .tool {
+            width: 70px;
+            height: 70px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: 4px solid #fff;
+            cursor: pointer;
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+
+        .tool.active {
+            background: #ffeb3b;
+            border-color: #fbc02d;
+            transform: scale(1.1);
+        }
+
+        #status {
+            position: fixed;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            color: #2e5a1c;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="status">ИНСТРУМЕНТ: РУКА</div>
+
+    <div class="game-container">
+        <div class="plot-container" id="field"></div>
+    </div>
+
+    <div class="toolbar">
+        <div id="sickle-btn" class="tool">🌾</div>
+        <div id="reset-btn" class="tool">🔄</div>
+    </div>
+
+    <script>
+        const field = document.getElementById('field');
+        const sickleBtn = document.getElementById('sickle-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const statusText = document.getElementById('status');
+
+        let isSickleMode = false;
+
+        // Настройки сетки
+        const cols = 4, rows = 8;
+        const W = 90, H = 45;
+        const ox = (cols - 1) * (W / 2);
+
+        // --- ГЕНЕРАЦИЯ ГРЯДОК ---
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const plot = document.createElement('div');
+                plot.className = 'plot';
+                plot.style.left = ox - (x - y) * (W / 2) + 'px';
+                plot.style.top = (x + y) * (H / 2) + 'px';
+
+                const img = document.createElement('img');
+                img.src = 'fsm/animals/dog/dog2.webp';
+                img.onerror = () => img.src = 'https://cdn-icons-png.flaticon.com/128/188/188333.png';
+
+                plot.appendChild(img);
+                field.appendChild(plot);
+
+                // --- ИНДИВИДУАЛЬНЫЕ СОБЫТИЯ ДЛЯ ПЛАТФОРМ ---
+
+                // Функция сбора для конкретной грядки
+                // const harvest = () => {
+                //     if (isSickleMode && !plot.classList.contains('harvested')) {
+                //         plot.classList.add('harvested');
+                //         if (navigator.vibrate) navigator.vibrate(15);
+                //     }
+                // };
+
+                // 1. Для мыши (ПК) - работает мгновенно при наведении
+                // plot.onmouseenter = harvest;
+
+                // 2. Для тапа/клика
+                // plot.onpointerdown = (e) => {
+                //     if (!e.target.closest('.tool')) harvest();
+                // };
+            }
+        }
+
+        // --- ЛОГИКА ТУЛБАРА ---
+        sickleBtn.onclick = () => {
+            isSickleMode = !isSickleMode;
+            sickleBtn.classList.toggle('active', isSickleMode);
+            statusText.innerText = isSickleMode ? "РЕЖИМ: СЕРП (ВЕДИ ПО ПОЛЮ)" : "ИНСТРУМЕНТ: РУКА";
+        };
+
+        resetBtn.onclick = () => {
+            document.querySelectorAll('.plot').forEach(p => p.classList.remove('harvested'));
+        };
+
+        // --- ПОДДЕРЖКА ТАЧ-СКРОЛЛА (МОБИЛЬНЫЕ) ---
+        // Так как на мобилках mouseenter не сработает при движении, 
+        // мы используем одну общую проверку для тача
+        window.onmousemove = window.ontouchmove = (e) => {
+            if (!isSickleMode) return;
+            const touch = e.touches?.[0] || e;
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            const plot = target?.closest('.plot');
+
+            // Если нашли грядку под пальцем во время движения - вызываем её функцию
+            if (plot && !plot.classList.contains('harvested')) {
+                plot.classList.add('harvested');
+                if (navigator.vibrate) navigator.vibrate(15);
+            }
+        };
+
+    </script>
+</body>
+
+</html>

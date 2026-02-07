@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Map with Web Components & Swipes</title>
+    <style>
+        /* 1. СТИЛИ КАРТЫ */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            /* background: #202020; */
+            /* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
+        }
+
+        .map-container {
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            cursor: grab;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .map-container:active {
+            cursor: grabbing;
+        }
+
+        .map-content {
+            position: relative;
+            display: inline-block;
+            line-height: 0;
+        }
+
+        .map-image {
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+        }
+
+        /* Кнопки-метки на карте */
+        .marker {
+            position: absolute;
+            padding: 10px 20px;
+            background: #ffcc00;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            line-height: normal;
+        }
+
+
+        .btn-action {
+            background: linear-gradient(to bottom, #ffffff 0%, #f2f2f2 100%);
+            color: #0056b3;
+            border: 1px solid #c0c0c0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 1);
+        }
+
+        .btn-action:hover {
+            background: linear-gradient(to bottom, #fcfcfc 0%, #e6e6e6 100%);
+            border-color: #b0b0b0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map-viewport" class="map-container">
+        <div class="map-content">
+            <img src="https://placehold.jp/40/333333/ffffff/2000x2000.png?text=КАРТА" alt="Map" class="map-image">
+
+            <div class="marker" style="top: 200px; left: 300px;" onclick="openModal('modal-shop')">Магазин</div>
+            <div class="marker" style="top: 800px; left: 1200px;" onclick="openModal('modal-warehouse')">Склад</div>
+        </div>
+    </div>
+
+    <game-modal id="modal-shop">
+        <h2 slot="title">Магазин</h2>
+
+        <div slot="tab" data-name="Семена">
+            <p><strong>Раздел: Семена</strong></p>
+            <p>Здесь вы можете купить лучшие семена для вашей фермы.</p>
+            <button class="btn-action">Купить семена</button>
+        </div>
+
+        <div slot="tab" data-name="Цветы">
+            <p><strong>Раздел: Цветы</strong></p>
+            <p>Украсьте свой участок прекрасными цветами.<br><br>Листайте свайпом!</p>
+            <button class="btn-action">Выбрать цветы</button>
+        </div>
+
+        <div slot="tab" data-name="Животные">
+            <p><strong>Раздел: Животные</strong></p>
+            <p>Заведите себе питомцев! Коровы, овцы, куры.
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+                <br><br>Листайте свайпом!
+            </p>
+            <button class="btn-action">Питомник</button>
+        </div>
+    </game-modal>
+
+    <game-modal id="modal-warehouse">
+        <h2 slot="title">Ваш Склад</h2>
+        <div slot="tab" data-name="Инвентарь">
+            <p>На складе сейчас:</p>
+            <ul>
+                <li>Пшеница: 150 шт.</li>
+                <li>Морковь: 75 шт.</li>
+            </ul>
+            <button class="btn-action">Продать всё</button>
+        </div>
+    </game-modal>
+
+    <template id="modal-template">
+        <style>
+            dialog {
+                border: 2px solid #ddd;
+                border-radius: 25px;
+                padding: 0;
+                max-width: 90%;
+                width: 550px;
+                background: #fdfdfd;
+                overflow: hidden;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            }
+
+            dialog::backdrop {
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(3px);
+            }
+
+            .modal-header {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 10px 20px 0;
+                border-bottom: 1px solid #ccc;
+                position: relative;
+            }
+
+            ::slotted(h2) {
+                margin: 5px 0 10px;
+                color: #333;
+                font-size: 1.5rem;
+            }
+
+            .tabs-nav {
+                display: flex;
+                gap: 4px;
+                width: 100%;
+                margin-bottom: -1px;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+
+            .tabs-nav::-webkit-scrollbar {
+                display: none;
+            }
+
+            .tab-btn {
+                background: transparent;
+                border: 1px solid #c0c0c0;
+                border-bottom: none;
+                border-radius: 6px 6px 0 0;
+                padding: 6px 16px;
+                color: #0056b3;
+                font-weight: bold;
+                cursor: pointer;
+                transition: 0.2s;
+                white-space: nowrap;
+            }
+
+            .tab-btn.active {
+                background: #fdfdfd;
+                border-bottom: 1px solid #fdfdfd;
+                z-index: 2;
+            }
+
+            .close-x {
+                position: absolute;
+                right: 15px;
+                top: 10px;
+                background: none;
+                border: none;
+                font-size: 2rem;
+                color: #666;
+                cursor: pointer;
+            }
+
+            .modal-body {
+                padding: 20px 30px 20px 20px;
+                max-height: 250px;
+                overflow-y: auto;
+                color: #444;
+                position: relative;
+            }
+
+            /* ВАШ ФЕРМЕРСКИЙ СКРОЛЛБАР */
+            .modal-body::-webkit-scrollbar {
+                width: 16px;
+            }
+
+            .modal-body::-webkit-scrollbar-track {
+                background-image: linear-gradient(to right, transparent 7px, #ccc 7px, #ccc 9px, transparent 9px);
+                margin: 15px 0;
+            }
+
+            .modal-body::-webkit-scrollbar-thumb {
+                background-color: #f0f0f0;
+                border: 1px solid #bbb;
+                border-radius: 10px;
+                box-shadow: inset 0px 0px 3px 1px rgba(0, 0, 0, 0.2);
+                background-image: linear-gradient(to bottom, transparent 45%, #999 45%, #999 55%, transparent 55%);
+            }
+
+            /* Контент */
+            .content-wrapper {
+                position: relative;
+            }
+
+            ::slotted([slot="tab"]) {
+                display: none;
+                /* animation: fadeIn 2s ease-out; */
+            }
+
+            ::slotted([slot="tab"].active) {
+                display: block;
+            }
+
+            ::slotted(.btn-action) {
+                background: linear-gradient(to bottom, #ffffff 0%, #f2f2f2 100%);
+                color: #0056b3;
+                border: 1px solid #c0c0c0;
+                padding: 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                width: 100%;
+                font-weight: bold;
+                margin-top: 15px;
+            }
+
+            /* @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(5px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            } */
+        </style>
+
+        <dialog class="game-modal">
+            <div class="modal-header">
+                <button class="close-x">&times;</button>
+                <slot name="title"></slot>
+                <div class="tabs-nav" id="tabs-nav"></div>
+            </div>
+            <div class="modal-body" id="swipe-area">
+                <div class="content-wrapper">
+                    <slot name="tab"></slot>
+                </div>
+            </div>
+        </dialog>
+    </template>
+
+    <script>
+        class GameModal extends HTMLElement {
+            constructor() {
+                super();
+                const template = document.getElementById('modal-template');
+                this.attachShadow({ mode: 'open' }).appendChild(template.content.cloneNode(true));
+
+                this.dialog = this.shadowRoot.querySelector('dialog');
+                this.nav = this.shadowRoot.getElementById('tabs-nav');
+                this.body = this.shadowRoot.getElementById('swipe-area');
+                this.currentIndex = 0;
+            }
+
+            connectedCallback() {
+                this.shadowRoot.querySelector('.close-x').onclick = () => this.close();
+                this.dialog.onclick = (e) => { if (e.target === this.dialog) this.close() };
+
+                // Инициализация вкладок при загрузке контента в слоты
+                this.shadowRoot.querySelector('slot[name="tab"]').onslotchange = () => this.renderTabs();
+
+                this._initSwipe();
+            }
+
+            renderTabs() {
+                const panes = this.querySelectorAll('[slot="tab"]');
+                this.nav.innerHTML = '';
+
+                if (panes.length <= 1) {
+                    this.nav.style.display = 'none';
+                } else {
+                    this.nav.style.display = 'flex';
+                    panes.forEach((pane, i) => {
+                        const btn = document.createElement('button');
+                        btn.className = `tab-btn ${i === 0 ? 'active' : ''}`;
+                        btn.textContent = pane.dataset.name || `Вкладка ${i + 1}`;
+                        btn.onclick = () => this.switchTab(i);
+                        this.nav.appendChild(btn);
+                    });
+                }
+                this.switchTab(0);
+            }
+
+            switchTab(index) {
+                const panes = this.querySelectorAll('[slot="tab"]');
+                const btns = this.shadowRoot.querySelectorAll('.tab-btn');
+                if (!panes[index]) return;
+
+                this.currentIndex = index;
+                panes.forEach(p => p.classList.remove('active'));
+                btns.forEach(b => b.classList.remove('active'));
+
+                panes[index].classList.add('active');
+                if (btns[index]) btns[index].classList.add('active');
+            }
+
+            _initSwipe() {
+                let startX = 0, startTime = 0;
+
+                this.body.addEventListener('touchstart', (e) => {
+                    startX = e.changedTouches[0].screenX;
+                    startTime = Date.now();
+                }, { passive: true });
+
+                this.body.addEventListener('touchend', (e) => {
+                    const panes = this.querySelectorAll('[slot="tab"]');
+                    if (panes.length <= 1) return;
+
+                    const diffX = e.changedTouches[0].screenX - startX;
+                    const elapsed = Date.now() - startTime;
+
+                    if (elapsed < 400 && Math.abs(diffX) > 50) {
+                        if (diffX > 0) {
+                            this.switchTab((this.currentIndex - 1 + panes.length) % panes.length);
+                        } else {
+                            this.switchTab((this.currentIndex + 1) % panes.length);
+                        }
+                    }
+                }, { passive: true });
+            }
+
+            open() { this.dialog.showModal(); }
+            close() { this.dialog.close(); }
+        }
+
+        customElements.define('game-modal', GameModal);
+
+        // ЛОГИКА КАРТЫ
+        let isMoving = false;
+        const viewport = document.getElementById('map-viewport');
+
+        function initMap() {
+            let startX, startY;
+            viewport.onpointerdown = (e) => {
+                isMoving = false;
+                startX = e.pageX; startY = e.pageY;
+                window.onpointermove = (ev) => {
+                    if (Math.abs(ev.pageX - startX) > 7) isMoving = true;
+                    viewport.scrollLeft -= ev.movementX;
+                    viewport.scrollTop -= ev.movementY;
+                };
+                window.onpointerup = () => window.onpointermove = null;
+            };
+        }
+
+        function openModal(id) {
+            if (!isMoving) document.getElementById(id).open();
+        }
+
+        initMap();
+    </script>
+</body>
+
+</html>
